@@ -18,7 +18,7 @@
   	- [method](#method)
 
 ## Introduction
-A lot of games need to save data between multiple game runs, in a small scope this can be done with Unitys [```PlayerPrefs```](https://docs.unity3d.com/2021.2/Documentation/ScriptReference/PlayerPrefs.html) system, if the scope rises tough this small and easily integrated Data Manager can help you create, save, edit and adjust data permanently over multiple game runs.
+A lot of games need to save data between multiple game runs, in a small scope this can be done with Unitys [```PlayerPrefs```](https://docs.unity3d.com/2021.2/Documentation/ScriptReference/PlayerPrefs.html) system, if the scope rises tough this small and easily integrated Data Manager can help you create, manage and load data via. files on the system easily and permanently over multiple game sessions.
 
 **Unity Data Manager implements the following methods consisting of a way to:**
 - method (see [method](#method))
