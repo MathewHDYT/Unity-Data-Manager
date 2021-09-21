@@ -7,6 +7,9 @@ public class FileData {
     // Private members reflecting the value in the remote PlayerPrefs,
     // used to ensure we don't need to load the data from PlayerPrefs
     // each time we want to access the given file data.
+    // Theese values should be private as we don't want to acces them directly,
+    // they need to be public tough so that JsonUtility.ToJson
+    // can add their values into the json string we create or update.
     public string path = string.Empty;
     public string hash = string.Empty;
     public byte[] key = null;
@@ -47,7 +50,7 @@ public class FileData {
             return key;
         }
         set {
-            if (value == null || value.Length <= 0) {
+            if (!value.IsNullOrEmpty()) {
                 return;
             }
 
@@ -76,5 +79,12 @@ public class FileData {
         // Save the json string into playerprefs
         // to keep the data persistent between different game session.
         PlayerPrefs.SetString(fileName, json);
+    }
+
+    private void DeleteRemote() {
+        // Get the key for the PlayerPrefs which is our fileName without extension.
+        string fileName = Path.GetFileNameWithoutExtension(FilePath);
+        // Delete the PlayerPrefs with the given key.
+        PlayerPrefs.DeleteKey(fileName);
     }
 }

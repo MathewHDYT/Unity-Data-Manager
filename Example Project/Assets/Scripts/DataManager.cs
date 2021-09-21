@@ -23,7 +23,7 @@ public class DataManager : MonoBehaviour {
         string fullPath = Path.Combine(Application.persistentDataPath, FILENAME_FILE);
         // Check if there are already saved files in our system,
         // therefore the file was created last game session.
-        if (!File.Exists(fullPath)) {
+        if (!CheckFileExists(fullPath, true)) {
             File.Create(fullPath).Close();
         }
         else {
@@ -58,8 +58,7 @@ public class DataManager : MonoBehaviour {
         string fileHash = string.Empty;
 
         // Check if the file exists already at the given path.
-        if (File.Exists(filePath)) {
-            Debug.LogWarning("There already exists a file at the given path: " + filePath);
+        if (CheckFileExists(filePath, false)) {
             return;
         }
 
@@ -90,20 +89,18 @@ public class DataManager : MonoBehaviour {
         content = string.Empty;
         bool sameHash = false;
 
-        // Get fileData from the dictionary and return an empty string and a warning if it wasn't created yet.
-        bool result = fileDictionary.TryGetValue(fileName, out FileData fileData);
-        if (!result) {
-            Debug.LogWarning("File has not been created yet with the given name: " + fileName);
-            return sameHash;
+        FileData fileData = GetFileData();
+        if (fileData == null) {
+            return;
         }
 
         // Check if hashing is enabled and we therefore saved the latest hash in fileData.
-        if (fileData.FileHash != string.Empty) {
+        if (string.IsNullOrEmpty(fileData.FileHash)) {
             sameHash = CompareFileHash(fileData);
         }
 
         // Check if encryption is enabled and we therefore saved a key in fileData.
-        if (fileData.FileKey != null && fileData.FileKey.Length > 0) {
+        if (!fileData.FileKey.IsNullOrEmpty()) {
             content = ReadFromEncryptedFile(fileData);
         }
         else {
@@ -122,10 +119,8 @@ public class DataManager : MonoBehaviour {
     public bool ChangeFilePath(string fileName, string directory) {
         bool success = false;
 
-        // Get fileData from the dictionary and return an empty string and a warning if it wasn't created yet.
-        bool result = fileDictionary.TryGetValue(fileName, out FileData fileData);
-        if (!result) {
-            Debug.LogWarning("File has not been created yet with the given name: " + fileName);
+        FileData fileData = GetFileData();
+        if (fileData == null) {
             return success;
         }
 
@@ -136,17 +131,16 @@ public class DataManager : MonoBehaviour {
         }
 
         string name = Path.GetFileName(fileData.FilePath);
-        string fullPath = Path.Combine(directory, name);
+        string filePath = Path.Combine(directory, name);
 
         // Check if the file exists already at the given path.
-        if (File.Exists(fullPath)) {
-            Debug.LogWarning("There already exists a file with the name: " + name + " at the given path: " + directory);
+        if (CheckFileExists(filePath, false)) {
             return success;
         }
 
         // Move the file to its new location and adjust the FilePath to the new value.
-        File.Move(fileData.FilePath, fullPath);
-        fileData.FilePath = fullPath;
+        File.Move(fileData.FilePath, filePath);
+        fileData.FilePath = filePath;
         success = true;
         return success;
     }
@@ -160,15 +154,13 @@ public class DataManager : MonoBehaviour {
     public bool UpdateFileContent(string fileName, string content) {
         bool success = false;
 
-        // Get fileData from the dictionary and return an empty string and a warning if it wasn't created yet.
-        bool result = fileDictionary.TryGetValue(fileName, out FileData fileData);
-        if (!result) {
-            Debug.LogWarning("File has not been created yet with the given name: " + fileName);
+        FileData fileData = GetFileData();
+        if (fileData == null) {
             return success;
         }
 
         // Check if encryption is enabled and we therefore saved a key in fileData.
-        if (fileData.FileKey != null && fileData.FileKey.Length > 0) {
+        if (!fileData.FileKey.IsNullOrEmpty()) {
             byte[] fileKey = WriteToEncryptedFile(fileData.FilePath, content, FileMode.Create);
             fileData.FileKey = fileKey;
         }
@@ -177,7 +169,7 @@ public class DataManager : MonoBehaviour {
         }
 
         // Check if hashing is enabled and we therefore saved the latest hash in fileData.
-        if (fileData.FileHash != string.Empty) {
+        if (!string.IsNullOrEmpty(fileData.FileHash)) {
             fileData.FileHash = GetFileHash(fileData.FilePath);
         }
 
@@ -194,15 +186,13 @@ public class DataManager : MonoBehaviour {
     public bool AppendFileContent(string fileName, string content) {
         bool success = false;
 
-        // Get fileData from the dictionary and return an empty string and a warning if it wasn't created yet.
-        bool result = fileDictionary.TryGetValue(fileName, out FileData fileData);
-        if (!result) {
-            Debug.LogWarning("File has not been created yet with the given name: " + fileName);
+        FileData fileData = GetFileData();
+        if (fileData == null) {
             return success;
         }
 
         // Check if encryption is enabled and we therefore saved a key in fileData.
-        if (fileData.FileKey != null && fileData.FileKey.Length > 0) {
+        if (!fileData.FileKey.IsNullOrEmpty()) {
             byte[] fileKey = WriteToEncryptedFile(fileData.FilePath, content, FileMode.Append);
             fileData.FileKey = fileKey;
         }
@@ -211,7 +201,7 @@ public class DataManager : MonoBehaviour {
         }
 
         // Check if hashing is enabled and we therefore saved the latest hash in fileData.
-        if (fileData.FileHash != string.Empty) {
+        if (string.IsNullOrEmpty(fileData.FileHash)) {
             fileData.FileHash = GetFileHash(fileData.FilePath);
         }
 
@@ -227,20 +217,99 @@ public class DataManager : MonoBehaviour {
     public bool CheckFileHash(string fileName) {
         bool sameHash = false;
 
-        // Get fileData from the dictionary and return an empty string and a warning if it wasn't created yet.
-        bool result = fileDictionary.TryGetValue(fileName, out FileData fileData);
-        if (!result) {
-            Debug.LogWarning("File has not been created yet with the given name: " + fileName);
+        FileData fileData = GetFileData();
+        if (fileData == null) {
             return sameHash;
         }
 
         return CompareFileHash(fileData);
     }
 
+    /// <summary>
+    /// Deletes the given file and all its remote counterparts.
+    /// </summary>
+    /// <param name="fileName">Name of the given file that should be deleted.</param>
+    /// <returns>Wheter deleting was succesful or not.</returns>
+    public bool DeleteFile(string fileName) {
+        bool success = false;
+        
+        FileData fileData = GetFileData();
+        if (fileData == null) {
+            return success;
+        }
+        // Check if the file exists at the given path.
+        else if (!CheckFileExists(fileData.FilePath, true)) {
+            return success;
+        }
+
+        File.Delete(fileData.FilePath);
+        fileData.DeleteRemote();
+        RemoveFromDictionary(fileName);
+
+        success = true;
+        return success;
+    }
+
+    private FileData GetFileData() {
+        // Get fileData from the dictionary and return an empty string and a warning if it wasn't created yet.
+        if (fileDictionary.TryGetValue(fileName, out fileData)) {
+            return fileData;
+        }
+
+        Debug.LogWarning("File has not been created yet with the given name: " + fileName);
+        return null;
+    }
+
+    private bool CheckFileExists(string filePath, bool expected) {
+        bool result = TryGetFileState(filePath, expected, out string message);
+        Debug.LogWarning(message);
+        return result;
+    }
+
+    private bool TryGetFileState(string filePath, bool expected, out string message) {
+        bool actual = File.Exists(filePath);
+
+        // Don't log a warning when we achieved our expected FileState.
+        if (expected == actual) {
+            return;
+        }
+
+        message = GetMessage(filePath, actual);
+        return actual;
+    }
+
+    private string GetMessage(string filePath, bool exists) {
+        string fileName = Path.GetFileNameWithoutExtension(filePath);
+        string directory = Path.GetDirectory(filePath);
+        string message = string.Empty;
+
+        if (exists) {
+            message = "There already exists a file with the name: " + fileName + " at the given folder: " + directory;
+        }
+        else {
+            message = "There doesn't exist a file with the name: " + fileName + " at the given folder: " + directory;
+        }
+
+        return message;
+    }
+
+    private bool IsNullOrEmpty(this byte[] arr) {
+        return (arr == null || arr.Length <= 0);
+    }
+
+    private void RemoveFromDictionary(string fileName) {
+        // Remove the data from the dictionary.
+        fileDictionary.Remove(fileName);
+        UpdateSaveFile();
+    }
+
     private void AddToDictionary(string fileName, FileData fileData) {
         // Add the data to the dictionary.
         fileDictionary.Add(fileName, fileData);
+        UpdateSaveFile();
+    }
 
+    private void UpdateFileNames() {
         string fullPath = Path.Combine(Application.persistentDataPath, FILENAME_FILE);
         // Write all dictionary keys into the file.
         File.WriteAllLines(fullPath, fileDictionary.Keys);
