@@ -15,13 +15,25 @@
 - [Documentation](#documentation)
   - [Reference to Data Manager Script](#reference-to-data-manager-script)
   - [Public accesible methods](#public-accesible-methods)
-  	- [method](#method)
+  	- [Create New File method](#create-new-file-method)
+  	- [Try Read From File method](#try-read-from-file-method)
+  	- [Change File Path method](#change-file-path-method)
+  	- [Update File Content method](#update-file-content-method)
+  	- [Append File Content method](#append-file-content-method)
+  	- [Check File Hash method](#check-file-hash-method)
+  	- [Delete File method](#delete-file-method)
 
 ## Introduction
 A lot of games need to save data between multiple game runs, in a small scope this can be done with Unitys [```PlayerPrefs```](https://docs.unity3d.com/2021.2/Documentation/ScriptReference/PlayerPrefs.html) system, if the scope rises tough this small and easily integrated Data Manager can help you create, manage and load data via. files on the system easily and permanently over multiple game sessions.
 
 **Unity Data Manager implements the following methods consisting of a way to:**
-- method (see [method](#method))
+- Create and register a new file with the DataManager and the given settings at the given location (see [Create New File method](#create-new-file-method))
+- Read the content of a registered file (see [Try Read From File method](#try-read-from-file-method))
+- Change the file path of a registered file (see [Change File Path method](#change-file-path-method))
+- Change all the content inside of a registered file (see [Update File Content method](#update-file-content-method))
+- Append content to a registered file (see [Append File Content method](#append-file-content-method))
+- Check the file hash of a registered file (see [Check File Hash method](#check-file-hash-method))
+- Delete a registered file and unregister it (see [Delete File method](#delete-file-method))
 
 For each method there is a description on how to call it and how to use it correctly for your game in the given section.
 
@@ -67,7 +79,49 @@ private void Start() {
 ## Public accesible methods
 This section explains all public accesible methods, especially what they do, how to call them and when using them might be advantageous instead of other methods. We always assume DataManager instance has been already referenced in the script. If you haven't done that already see [Reference to Data Manager Script](#reference-to-data-manager-script).
 
-### method
+### Create New File method
+**What it does:**
+
+**How to call it:**
+
+**When to use it:**
+
+### Try Read From File method
+**What it does:**
+
+**How to call it:**
+
+**When to use it:**
+
+### Change File Path method
+**What it does:**
+
+**How to call it:**
+
+**When to use it:**
+
+### Update File Content method
+**What it does:**
+
+**How to call it:**
+
+**When to use it:**
+
+### Append File Content method
+**What it does:**
+
+**How to call it:**
+
+**When to use it:**
+
+### Check File Hash method
+**What it does:**
+
+**How to call it:**
+
+**When to use it:**
+
+### Delete File method
 **What it does:**
 
 **How to call it:**
