@@ -71,6 +71,9 @@ public class FileData {
         FileKey = fileKey;
     }
 
+    /// <summary>
+    /// Updates the remote counterpart of the file data with its new contents.
+    /// </summary>
     private void UpdateRemote() {
         // Get the key for the PlayerPrefs which is our fileName without extension.
         string fileName = Path.GetFileNameWithoutExtension(FilePath);
@@ -81,6 +84,9 @@ public class FileData {
         PlayerPrefs.SetString(fileName, json);
     }
 
+    /// <summary>
+    /// Deletes the remote counterpart of the file data.
+    /// </summary>
     private void DeleteRemote() {
         // Get the key for the PlayerPrefs which is our fileName without extension.
         string fileName = Path.GetFileNameWithoutExtension(FilePath);

@@ -20,11 +20,11 @@ public class DataManager : MonoBehaviour {
         instance = this;
         DontDestroyOnLoad(gameObject);
 
-        string fullPath = Path.Combine(Application.persistentDataPath, FILENAME_FILE);
+        string filePath = Path.Combine(Application.persistentDataPath, FILENAME_FILE);
         // Check if there are already saved files in our system,
         // therefore the file was created last game session.
-        if (!CheckFileExists(fullPath, true)) {
-            File.Create(fullPath).Close();
+        if (!CheckFile(filePath, false)) {
+            File.Create(filePath).Close();
         }
         else {
             // If it is we can just load all it's contents
@@ -58,7 +58,7 @@ public class DataManager : MonoBehaviour {
         string fileHash = string.Empty;
 
         // Check if the file exists already at the given path.
-        if (CheckFileExists(filePath, false)) {
+        if (CheckFile(filePath)) {
             return;
         }
 
@@ -89,7 +89,7 @@ public class DataManager : MonoBehaviour {
         content = string.Empty;
         bool sameHash = false;
 
-        FileData fileData = GetFileData();
+        FileData fileData = GetFileData(fileName);
         if (fileData == null) {
             return;
         }
@@ -119,7 +119,7 @@ public class DataManager : MonoBehaviour {
     public bool ChangeFilePath(string fileName, string directory) {
         bool success = false;
 
-        FileData fileData = GetFileData();
+        FileData fileData = GetFileData(fileName);
         if (fileData == null) {
             return success;
         }
@@ -134,7 +134,7 @@ public class DataManager : MonoBehaviour {
         string filePath = Path.Combine(directory, name);
 
         // Check if the file exists already at the given path.
-        if (CheckFileExists(filePath, false)) {
+        if (CheckFile(filePath)) {
             return success;
         }
 
@@ -154,7 +154,7 @@ public class DataManager : MonoBehaviour {
     public bool UpdateFileContent(string fileName, string content) {
         bool success = false;
 
-        FileData fileData = GetFileData();
+        FileData fileData = GetFileData(fileName);
         if (fileData == null) {
             return success;
         }
@@ -186,7 +186,7 @@ public class DataManager : MonoBehaviour {
     public bool AppendFileContent(string fileName, string content) {
         bool success = false;
 
-        FileData fileData = GetFileData();
+        FileData fileData = GetFileData(fileName);
         if (fileData == null) {
             return success;
         }
@@ -217,7 +217,7 @@ public class DataManager : MonoBehaviour {
     public bool CheckFileHash(string fileName) {
         bool sameHash = false;
 
-        FileData fileData = GetFileData();
+        FileData fileData = GetFileData(fileName);
         if (fileData == null) {
             return sameHash;
         }
@@ -233,12 +233,12 @@ public class DataManager : MonoBehaviour {
     public bool DeleteFile(string fileName) {
         bool success = false;
         
-        FileData fileData = GetFileData();
+        FileData fileData = GetFileData(fileName);
         if (fileData == null) {
             return success;
         }
         // Check if the file exists at the given path.
-        else if (!CheckFileExists(fileData.FilePath, true)) {
+        else if (!CheckFile(fileData.FilePath, false)) {
             return success;
         }
 
@@ -250,7 +250,12 @@ public class DataManager : MonoBehaviour {
         return success;
     }
 
-    private FileData GetFileData() {
+    /// <summary>
+    /// Attempts to get the corresponding value for the given key from the file dictionary.
+    /// </summary>
+    /// <param name="fileName">Name of the given file that we want to get the values from.</param>
+    /// <returns>The data of the given file.</returns>
+    private FileData GetFileData(string fileName) {
         // Get fileData from the dictionary and return an empty string and a warning if it wasn't created yet.
         if (fileDictionary.TryGetValue(fileName, out fileData)) {
             return fileData;
@@ -260,12 +265,33 @@ public class DataManager : MonoBehaviour {
         return null;
     }
 
-    private bool CheckFileExists(string filePath, bool expected) {
-        bool result = TryGetFileState(filePath, expected, out string message);
+
+    /// <summary>
+    /// Checks if a given file exists and prints an error if the expected result is not equal to the actual result.
+    /// </summary>
+    /// <param name="fileName">Name of the given file that we want to get the values from.</param>
+    /// <param name="fileExists">
+    /// Defines wheter we expect the file to exist or not to exists,
+    /// this influences when and what message will be printed out as a warning.
+    /// </param>
+    /// <returns>Wheter the file exists or not.</returns>
+    private bool CheckFile(string filePath, bool fileExists = true) {
+        bool result = TryGetFileState(filePath, fileExists, out string message);
         Debug.LogWarning(message);
         return result;
     }
 
+    /// <summary>
+    /// Attempts to get the current file state (exists or doesn't exist) and returns a message
+    // depeding on the expected and the actual file state.
+    /// </summary>
+    /// <param name="filePath">Name of the given file that we want to get the values from.</param>
+    /// <param name="expected">
+    /// Defines wheter we expect the file to exist or not to exists,
+    /// this influences when and what message will be printed out as a warning.
+    /// </param>
+    /// <param name="message">Message we can print out.</param>
+    /// <returns>Wheter the file exists or not.</returns>
     private bool TryGetFileState(string filePath, bool expected, out string message) {
         bool actual = File.Exists(filePath);
 
@@ -278,12 +304,22 @@ public class DataManager : MonoBehaviour {
         return actual;
     }
 
-    private string GetMessage(string filePath, bool exists) {
+    /// <summary>
+    /// Gets one of the two possible messages that we want to show,
+    /// when the file state is not as expected when calling a fucntion.
+    /// </summary>
+    /// <param name="filePath">Name of the given file that we want to get the values from.</param>
+    /// <param name="fileExists">
+    /// Defines wheter we expect the file to exist or not to exists,
+    /// this influences when and what message will be printed out as a warning.
+    /// </param>
+    /// <returns>Message we can print out.</returns>
+    private string GetMessage(string filePath, bool fileExists) {
         string fileName = Path.GetFileNameWithoutExtension(filePath);
         string directory = Path.GetDirectory(filePath);
         string message = string.Empty;
 
-        if (exists) {
+        if (fileExists) {
             message = "There already exists a file with the name: " + fileName + " at the given folder: " + directory;
         }
         else {
@@ -293,28 +329,52 @@ public class DataManager : MonoBehaviour {
         return message;
     }
 
+    /// <summary>
+    /// Checks if the given byte array is null or if its length is 0 or less.
+    /// </summary>
+    /// <param name="arr">Array we want to check.</param>
+    /// <returns>Wheter the given byte array is null or has no content.</returns>
     private bool IsNullOrEmpty(this byte[] arr) {
         return (arr == null || arr.Length <= 0);
     }
 
+    /// <summary>
+    /// Removes the item with the given key from the file dictionary.
+    /// </summary>
+    /// <param name="fileName">Key of the item we want to remove.</param>
     private void RemoveFromDictionary(string fileName) {
         // Remove the data from the dictionary.
         fileDictionary.Remove(fileName);
         UpdateSaveFile();
     }
 
+    /// <summary>
+    /// Adds the given content to the file dictionary.
+    /// </summary>
+    /// <param name="fileName">Key of the content we want to add.</param>
+    /// <param name="fileData">Value of the content we want to add.</param>
     private void AddToDictionary(string fileName, FileData fileData) {
         // Add the data to the dictionary.
         fileDictionary.Add(fileName, fileData);
         UpdateSaveFile();
     }
 
+    /// <summary>
+    /// Updates the list of file names to ensure we keep our keys in the dictionary,
+    /// even if we restart the game so that the file dictionary can be rebuild at the start.
+    /// This is done because the same key as in the dictionary is also used to access the values
+    /// saved in our PlayerPrefs that hold the FileData.
+    /// </summary>
     private void UpdateFileNames() {
-        string fullPath = Path.Combine(Application.persistentDataPath, FILENAME_FILE);
+        string filePath = Path.Combine(Application.persistentDataPath, FILENAME_FILE);
         // Write all dictionary keys into the file.
-        File.WriteAllLines(fullPath, fileDictionary.Keys);
+        File.WriteAllLines(filePath, fileDictionary.Keys);
     }
 
+    /// <summary>
+    /// Loads the list of file names saved into the file. To rebuild the dictioanry with all values
+    /// and the corresponding keys. So that we can still access the files even after restarting the game.
+    /// </summary>
     private void LoadFileNames() {
         string fullPath = Path.Combine(Application.persistentDataPath, FILENAME_FILE);
         // Read all dictionary keys from the file.
@@ -329,11 +389,24 @@ public class DataManager : MonoBehaviour {
         }
     }
 
+    /// <summary>
+    /// Compares the current hash with the hash last produced from the internal system.
+    /// To ensure it hasn't been changed since we last accesed it ourselves.
+    /// </summary>
+    /// <param name="fileData">File we want to check the hash from.</param>
+    /// <returns>Wheter the expected and actual file hash are the same.</returns>
     private bool CompareFileHash(FileData fileData) {
         string currentHash = GetFileHash(fileData.FilePath);
         return string.Equals(currentHash, fileData.FileHash);
     }
 
+    /// <summary>
+    /// Writes the given content to the given file and encrypts it as well.
+    /// </summary>
+    /// <param name="filePath">File we want to write the content into.</param>
+    /// <param name="content">Content we want to write into the given file.</param>
+    /// <param name="fileMode">Mode the file should be accesed as.</param>
+    /// <returns>Byte array that contains the key to access the file for future reads and writes.</returns>
     private byte[] WriteToEncryptedFile(string filePath, string content, FileMode fileMode) {
         byte[] fileKey = null;
 
@@ -366,6 +439,11 @@ public class DataManager : MonoBehaviour {
         return fileKey;
     }
 
+    /// <summary>
+    /// Reads everything from the given encrypted file.
+    /// </summary>
+    /// <param name="fileData">File we want to read the content from.</param>
+    /// <returns>Decrypted content that was contained in the file.</returns>
     private string ReadFromEncryptedFile(FileData fileData) {
         string content = string.Empty;
 
@@ -390,6 +468,12 @@ public class DataManager : MonoBehaviour {
         return content;
     }
 
+    /// <summary>
+    /// Writes the given content to the given file.
+    /// </summary>
+    /// <param name="filePath">File we want to write the content into.</param>
+    /// <param name="content">Content we want to write into the given file.</param>
+    /// <param name="fileMode">Mode the file should be accesed as.</param>
     private void WriteToFile(string filePath, string content, FileMode fileMode) {
         switch (fileMode) {
             case FileMode.Append:
@@ -407,6 +491,11 @@ public class DataManager : MonoBehaviour {
         }
     }
 
+    /// <summary>
+    /// Gets the file hash of a given files contents.
+    /// </summary>
+    /// <param name="filePath">File we want to create the hash for.</param>
+    /// <returns>Hash representing the given files current content.</returns>
     private string GetFileHash(string filePath) {
         byte[] buffer = File.ReadAllBytes(filePath);
         using (var sha1 = new SHA1CryptoServiceProvider()) {
