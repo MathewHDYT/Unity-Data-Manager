@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
+using System.IO.Compression;
 using UnityEngine;
 
 public class DataManager : MonoBehaviour {
@@ -500,6 +501,34 @@ public class DataManager : MonoBehaviour {
         byte[] buffer = File.ReadAllBytes(filePath);
         using (var sha1 = new SHA1CryptoServiceProvider()) {
             return string.Concat(sha1.ComputeHash(buffer).Select(x => x.ToString("X2")));
+        }
+    }
+    
+    /// <summary>
+    /// Takes the original file and replaces it with the compressed version of itself.
+    /// </summary>
+    /// <param name="filePath">File we want to compress.</param>
+    private void Compress(string filePath) {
+		using (var originalFileStream = new FileStream(filePath, FileMode.Open)) {
+			using (FileStream compressedFileStream = File.Create(filePath)) {
+				using (GZipStream compressionStream = new GZipStream(compressedFileStream, CompressionMode.Compress)) {
+					originalFileStream.CopyTo(compressionStream);
+				}
+			}
+		}
+    }
+
+    /// <summary>
+    /// Takes the compressed file and replaces it with the uncompressed version of itself.
+    /// </summary>
+    /// <param name="filePath">File we want to decompress.</param>
+    private void Decompress(string filePath) {
+        using (var originalFileStream = new FileStream(filePath, FileMode.Open)) {
+            using (FileStream decompressedFileStream = File.Create(filePath)) {
+                using (GZipStream decompressionStream = new GZipStream(originalFileStream, CompressionMode.Decompress)) {
+                    decompressionStream.CopyTo(decompressedFileStream);
+                }
+            }
         }
     }
 }
