@@ -13,6 +13,7 @@ public class FileData {
     public string path = string.Empty;
     public string hash = string.Empty;
     public byte[] key = null;
+    public bool compression = false;
 
     /// <summary>
     /// Full path of the file on our local machine.
@@ -50,11 +51,25 @@ public class FileData {
             return key;
         }
         set {
-            if (!value.IsNullOrEmpty()) {
+            if (value == null || value.Length <= 0) {
                 return;
             }
 
             key = value;
+            UpdateRemote();
+        }
+    }
+    
+    /// <summary>
+    /// Key of the file, used as the en -and decryption key
+    /// if encryption is enabled.
+    /// </summary>
+    public bool FileCompression {
+        get {
+            return compression;
+        }
+        set {
+            compression = value;
             UpdateRemote();
         }
     }
@@ -65,10 +80,11 @@ public class FileData {
     /// <param name="filePath">Full path of the file.</param>
     /// <param name="fileHash">Hash of the file.</param>
     /// <param name="fileKey">Key of the file, used for en -or decryption.</param>
-    public FileData(string filePath, string fileHash, byte[] fileKey) {
+    public FileData(string filePath, string fileHash, byte[] fileKey, bool fileCompression) {
         FilePath = filePath;
         FileHash = fileHash;
         FileKey = fileKey;
+        FileCompression = fileCompression;
     }
 
     /// <summary>
