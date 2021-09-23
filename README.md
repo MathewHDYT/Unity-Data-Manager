@@ -81,10 +81,37 @@ This section explains all public accesible methods, especially what they do, how
 
 ### Create New File method
 **What it does:**
+When you want to create and register a new file with the possible options and content you want to write into the file.
 
 **How to call it:**
+- ```FileName``` is the name without extension we have given the file we want to register and create
+- ```Content``` is the inital data that is saved into the file
+- ```DirectoryPath``` is the directory the file should be saved into
+- ```FileEnding``` is the extension the file should have
+- ```Encryption``` decides wether the given file should be encrypted or not
+- ```Hashing``` decides wether the given file should be checked for unexpected changes before using it
+- ```Compression``` decides wheter the given file should be compressed or not
+
+```csharp
+string fileName = "save";
+string content = "";
+string directoryPath = Application.persistentData;
+string fileEnding = ".txt";
+bool encryption = false;
+bool hashing = false;
+bool compression = false;
+dm.CreateNewFile(fileName, content, directoryPath, fileEnding, encryption, hashing, compression);
+```
+
+Alternatively you can call the methods with less paramters as some of them have default arguments.
+
+```csharp
+string fileName = "save";
+dm.CreateNewFile(fileName);
+```
 
 **When to use it:**
+When you want to register and create a new file with the system so it can be used later.
 
 ### Try Read From File method
 **What it does:**
