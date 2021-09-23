@@ -47,7 +47,7 @@ public class DataManager : MonoBehaviour {
     /// <param name="fileEnding">Ending the given file should have.</param>
     /// <param name="encryption">Wether the given file should be encrypted.</param>
     /// <param name="hashing">Wheter the given file should be checked for unexpected changes before using it.</param>
-    public void CreateNewFile(string fileName, string content = "", string directoryPath = "", string fileEnding = ".txt", bool encryption = false, bool hashing = false) {
+    public void CreateNewFile(string fileName, string content = "", string directoryPath = "", string fileEnding = ".txt", bool encryption = false, bool hashing = false, bool compression = false) {
         // Set the given directory to save into to the persisentDataPath if no different directoryPath was given.
         if (directoryPath == string.Empty) {
             directoryPath = Application.persistentDataPath;
@@ -63,6 +63,11 @@ public class DataManager : MonoBehaviour {
             return;
         }
 
+        // Check if the file should be compressed.
+        if (compression) {
+            filePath = CompressFile(filePath);
+        }
+        
         // Check if the file should be encrypted.
         if (encryption) {
             fileKey = WriteToEncryptedFile(filePath, content, FileMode.CreateNew);
@@ -77,7 +82,7 @@ public class DataManager : MonoBehaviour {
         }
 
         // Add data of the newly created file to the dictionary.
-        FileData fileData = new FileData(filePath, fileHash, fileKey);
+        FileData fileData = new FileData(filePath, fileHash, fileKey, compression);
         AddToDictionary(fileName, fileData);
     }
 
@@ -508,24 +513,46 @@ public class DataManager : MonoBehaviour {
     /// Takes the original file and replaces it with the compressed version of itself.
     /// </summary>
     /// <param name="filePath">File we want to compress.</param>
-    private void Compress(string filePath) {
-        using (var originalFileStream = new FileStream(filePath, FileMode.Open)) {
-            using (FileStream compressedFileStream = File.Create(filePath + ".gz")) {
-                using (GZipStream compressionStream = new GZipStream(compressedFileStream, CompressionMode.Compress)) {
+    /// <returns>Path to the newly created compressed version of the given file.</returns>
+    private string CompressFile(string filePath) {
+        string compressedFilePath = filePath + ".gz";
+        var fileToCompress = new FileInfo(filePath);
+
+        // Create FileStream for opening and reading from the FileInfo object.
+        using (var originalFileStream = fileToCompress.OpenRead()) {
+            // Check if the given file was already compressed before.
+            if ((File.GetAttributes(fileToCompress.FullName) & FileAttributes.Hidden) != FileAttributes.Hidden & fileToCompress.Extension != ".gz") {
+                Debug.LogWarning("Given file with the name: " + fileToCompress.Name + " has already been compressed before.");
+                return filePath;
+            }
+
+            // Create FileStream, wrapping the OpenRead FileStream.
+            using (var compressedFileStream = File.Create(compressedFilePath)) {
+                // Create GZipStream, wrapping the Create FileStream.
+                using (var compressionStream = new GZipStream(compressedFileStream, CompressionMode.Compress)) {
                     originalFileStream.CopyTo(compressionStream);
                 }
             }
         }
+        return compressedFilePath;
     }
 
     /// <summary>
     /// Takes the compressed file and replaces it with the uncompressed version of itself.
     /// </summary>
     /// <param name="filePath">File we want to decompress.</param>
-    private void Decompress(string filePath) {
-        using (var originalFileStream = new FileStream(filePath, FileMode.Open)) {
-            using (FileStream decompressedFileStream = File.Create(filePath + ".gz")) {
-                using (GZipStream decompressionStream = new GZipStream(originalFileStream, CompressionMode.Decompress)) {
+    private void DecompressFile(string filePath) {
+        var fileToDecompress = new FileInfo(filePath);
+
+        // Create FileStream for opening and reading from the FileInfo object.
+        using (var originalFileStream = fileToDecompress.OpenRead()) {
+            // Extract the ".gz" extension from the filePath.
+            string newFilePath = filePath.Remove(filePath.Length - fileToDecompress.Extension.Length);
+
+            // Create FileStream, wrapping the OpenRead FileStream.
+            using (var decompressedFileStream = File.Create(newFilePath)) {
+                // Create GZipStream, wrapping the Create FileStream.
+                using (var decompressionStream = new GZipStream(originalFileStream, CompressionMode.Decompress)) {
                     decompressionStream.CopyTo(decompressedFileStream);
                 }
             }
