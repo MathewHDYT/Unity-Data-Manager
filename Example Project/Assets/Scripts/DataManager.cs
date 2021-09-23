@@ -509,13 +509,13 @@ public class DataManager : MonoBehaviour {
     /// </summary>
     /// <param name="filePath">File we want to compress.</param>
     private void Compress(string filePath) {
-		using (var originalFileStream = new FileStream(filePath, FileMode.Open)) {
-			using (FileStream compressedFileStream = File.Create(filePath)) {
-				using (GZipStream compressionStream = new GZipStream(compressedFileStream, CompressionMode.Compress)) {
-					originalFileStream.CopyTo(compressionStream);
-				}
-			}
-		}
+        using (var originalFileStream = new FileStream(filePath, FileMode.Open)) {
+            using (FileStream compressedFileStream = File.Create(filePath + ".gz")) {
+                using (GZipStream compressionStream = new GZipStream(compressedFileStream, CompressionMode.Compress)) {
+                    originalFileStream.CopyTo(compressionStream);
+                }
+            }
+        }
     }
 
     /// <summary>
@@ -524,7 +524,7 @@ public class DataManager : MonoBehaviour {
     /// <param name="filePath">File we want to decompress.</param>
     private void Decompress(string filePath) {
         using (var originalFileStream = new FileStream(filePath, FileMode.Open)) {
-            using (FileStream decompressedFileStream = File.Create(filePath)) {
+            using (FileStream decompressedFileStream = File.Create(filePath + ".gz")) {
                 using (GZipStream decompressionStream = new GZipStream(originalFileStream, CompressionMode.Decompress)) {
                     decompressionStream.CopyTo(decompressedFileStream);
                 }
