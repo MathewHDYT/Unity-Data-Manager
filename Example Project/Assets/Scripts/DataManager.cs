@@ -47,6 +47,7 @@ public class DataManager : MonoBehaviour {
     /// <param name="fileEnding">Ending the given file should have.</param>
     /// <param name="encryption">Wether the given file should be encrypted.</param>
     /// <param name="hashing">Wheter the given file should be checked for unexpected changes before using it.</param>
+    /// <param name="compression">Wheter the given file should be compressed.</param>
     public void CreateNewFile(string fileName, string content = "", string directoryPath = "", string fileEnding = ".txt", bool encryption = false, bool hashing = false, bool compression = false) {
         // Set the given directory to save into to the persisentDataPath if no different directoryPath was given.
         if (directoryPath == string.Empty) {
