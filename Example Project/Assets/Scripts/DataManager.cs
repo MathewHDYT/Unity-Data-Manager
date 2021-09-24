@@ -94,7 +94,7 @@ public class DataManager : MonoBehaviour {
     /// <returns>Wheter the file has been changed outside of the DataManager class or not.</returns>
     public bool TryReadFromFile(string fileName, out string content) {
         content = string.Empty;
-        bool sameHash = false;
+        bool sameHash = true;
 
         FileData fileData = GetFileData(fileName);
         if (fileData == null) {
