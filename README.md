@@ -81,7 +81,7 @@ This section explains all public accesible methods, especially what they do, how
 
 ### Create New File method
 **What it does:**
-When you want to create and register a new file with the possible options and content you want to write into the file.
+Creates and registers a new file with the possible options and content you want to write into that file.
 
 **How to call it:**
 - ```FileName``` is the name without extension we have given the file we want to register and create
@@ -95,7 +95,7 @@ When you want to create and register a new file with the possible options and co
 ```csharp
 string fileName = "save";
 string content = "";
-string directoryPath = Application.persistentData;
+string directoryPath = Application.persistentDataPath;
 string fileEnding = ".txt";
 bool encryption = false;
 bool hashing = false;
@@ -115,42 +115,125 @@ When you want to register and create a new file with the system so it can be use
 
 ### Try Read From File method
 **What it does:**
+Reads the content of a registered file and returns it as plain text, as well as a boolean deciding wheter the hash was changed outside the environment, if it was enabled for the given file in the [Create New File method](#create-new-file-method).
 
 **How to call it:**
+- ```FileName``` is the name without extension we have given the registered file and want to read now
+- ```Content``` is the variable that the plain text that we read will be copied into
+
+```csharp
+string fileName = "save";
+string content = "";
+if (dm.TryReadFromFile(fileName, content)) {
+    Debug.Log("Reading the file was succesfull, it has not been modified outside of the environment, with the read data being: " + content);
+}
+else {
+    Debug.Log("Reading the file failed, as the file has been modified outside of the environment");
+}
+```
 
 **When to use it:**
+When you want to read the content of a registered file and additionaly if enabled check and return if the file was modified outside of the environment or not.
 
 ### Change File Path method
 **What it does:**
+Moves the file location of a registered file to the new directory and returns true if it succeded.
 
 **How to call it:**
+- ```FileName``` is the name without extension we have given the registered file and want to move now
+- ```Directory``` is the new directory the file should be saved into
+
+```csharp
+string fileName = "save";
+string directory = Application.persistentDataPath;
+if (dm.ChangeFilePath(fileName, directory)) {
+    Debug.Log("Moving the file to the new directory: " + directory + " was succesfull");
+}
+else {
+    Debug.Log("Moving the file to the new directory: " + directory + " failed");
+}
+```
 
 **When to use it:**
+WHen you want to move the file location of a registered file.
 
 ### Update File Content method
 **What it does:**
+Replaces all the current content in the registered file with the new given content and returns true if it succeded.
 
 **How to call it:**
+- ```FileName``` is the name without extension we have given the registered file and want to rewrite the content of
+- ```Content``` is the new content that should replace the current content
+
+```csharp
+string fileName = "save";
+string content = "Example";
+if (dm.UpdateFileContent(fileName, content)) {
+    Debug.Log("Updating the file to the new content: " + content + " was succesfull");
+}
+else {
+    Debug.Log("Updating the file to the new content: " + content + " failed");
+}
+```
 
 **When to use it:**
+WHen you want to replace the current content of a registered file with the newly given content, so that the old content is overwritten.
 
 ### Append File Content method
 **What it does:**
+Appends the given content to the current content in the registered file and returns true if it succeded.
 
 **How to call it:**
+- ```FileName``` is the name without extension we have given the registered file and want to rewrite the content of
+- ```Content``` is the new content that should replace the current content
+
+```csharp
+string fileName = "save";
+string content = "Example";
+if (dm.AppendFileContent(fileName, content)) {
+    Debug.Log("Appending the content: " + content + " to the file was succesfull");
+}
+else {
+    Debug.Log("Appending the content: " + content + " to the file failed"));
+}
+```
 
 **When to use it:**
+WHen you want to append the given content the current content of a registered file, so that the old content still stays in the file.
 
 ### Check File Hash method
 **What it does:**
+Compares the current hash of the file with the expected hash we have saved in our environment, should be the hash for the last internal changes (write access). Returns false if hashing was not enabled for the registered file.
 
 **How to call it:**
+- ```FileName``` is the name without extension we have given the registered file and want to check the hash now
+
+```csharp
+string fileName = "save";
+if (!dm.CheckFileHash(fileName)) {
+    Debug.Log("Given file was changedd outside of the environment since last accesing it");
+}
+```
 
 **When to use it:**
+WHen you want to check if the file was changed outisde of the environment by for example the user editing the file from the file explorer.
 
 ### Delete File method
 **What it does:**
+Deletes the registered file and unregisters it from the environment.
 
 **How to call it:**
+- ```FileName``` is the name without extension we have given the registered file and want to delete now
+
+```csharp
+string fileName = "save";
+if (dm.DeleteFile(fileName)) {
+    Debug.Log("Deleting the file " + fileName + " was succesfull");
+}
+else {
+    Debug.Log("Deleting the file " + fileName + " failed");
+}
+```
 
 **When to use it:**
+WHen you want to delete a file and unregister it from the environment, if it is for example no longer needed.
