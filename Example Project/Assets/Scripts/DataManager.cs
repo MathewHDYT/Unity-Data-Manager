@@ -198,6 +198,15 @@ public class DataManager : MonoBehaviour {
             return success;
         }
 
+        // Check if hashing is enabled and we therefore saved the latest hash in fileData.
+        if (string.IsNullOrEmpty(fileData.FileHash)) {
+            // Check if the hash is still the same or if it was changed.
+            if (!CompareFileHash(fileData)) {
+                // If it was don't append our given content to the file.
+                return success;
+            }
+        }
+
         // Check if encryption is enabled and we therefore saved a key in fileData.
         if (!fileData.FileKey.IsNullOrEmpty()) {
             byte[] fileKey = WriteToEncryptedFile(fileData.FilePath, content, FileMode.Append);
