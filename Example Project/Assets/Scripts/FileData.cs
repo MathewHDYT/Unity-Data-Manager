@@ -103,7 +103,7 @@ public class FileData {
     /// <summary>
     /// Deletes the remote counterpart of the file data.
     /// </summary>
-    private void DeleteRemote() {
+    public void DeleteRemote() {
         // Get the key for the PlayerPrefs which is our fileName without extension.
         string fileName = Path.GetFileNameWithoutExtension(FilePath);
         // Delete the PlayerPrefs with the given key.

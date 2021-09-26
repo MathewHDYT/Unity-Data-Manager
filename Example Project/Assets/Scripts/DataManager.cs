@@ -24,7 +24,7 @@ public class DataManager : MonoBehaviour {
         string filePath = Path.Combine(Application.persistentDataPath, FILENAME_FILE);
         // Check if there are already saved files in our system,
         // therefore the file was created last game session.
-        if (!CheckFile(filePath, false)) {
+        if (!CheckFile(filePath, true)) {
             File.Create(filePath).Close();
         }
         else {
@@ -34,6 +34,19 @@ public class DataManager : MonoBehaviour {
         }
     }
     #endregion
+
+    private void Start() {
+        DeleteFile("Example");
+        string path = @"C:\Users\mathe\Downloads";
+        string name = "Example";
+        string input = "Test349823904712389047123890471238904712389047123890471238905612389561239571289047123890472389zuisfghafjkasd jkfhdba2cv34279847c23n894vn12crfasdjkfh423905v298f57h1213890471238947123894723f8957123j523490523489v57jjghjkdfhgksdfhgksdfjlhgjksdfhgjksdfhgjsdfkhgjasweiouroiqwhgvlcnxm,vyxcm,vbkfasöfklsdjrwejriopeuqeutouwehlfcbvxcbvm,yxbvjksdhfoajriopeqwuriezrtgerhbfvdbcyxvm,nbdfglbaösdfjapoweruqw39et5q34897582346579zfguisdklfajkfhjkashfjkasdbvkvbmc,xbvnbsdfkghasjhlörtweioptzuqwztuihfgvbcyx,vbksdhnjfsdhjkhasdjiofhasduiofhbvjioasbnvjopuofhpwioauraicvkahsdvjiopbasdjklvasuzhroiaszhruiopuaesriophasodfkcfhnasvnasdkövnoiparuaweiorhasbncvlösdanvklbnkalnboasrioaurklafnlasdnlfnasdlkbagoasdhtfgioasjtäajsd¨rfasdü0fuopasdgfasdhgfsdklöfuzioasuzruehjasdjklbvkasdbdj dasfhasdfzhasduozfuiasdghfjasdljfhasdjkof.\n";
+        CreateNewFile(name, input, path, ".txt", true, false, false);
+        for (int i = 0; i < 100; i++) {
+            AppendFileContent(name, input);
+        }
+        TryReadFromFile(name, out string content);
+        Debug.Log(content);
+    }
 
     private const string FILENAME_FILE = "fileNames.save";
     private Dictionary<string, FileData> fileDictionary = new Dictionary<string, FileData>();
@@ -64,14 +77,19 @@ public class DataManager : MonoBehaviour {
             return;
         }
 
-        // Check if the file should be compressed.
-        if (compression) {
-            filePath = CompressFile(filePath);
+        // Check if the file should be encrypted and compressed.
+        if (encryption && compression) {
+            Debug.LogWarning("File can't be both encrypted and compressed");
+            return;
         }
-        
-        // Check if the file should be encrypted.
+
+        // Check if the file should be only encrypted.
         if (encryption) {
             fileKey = WriteToEncryptedFile(filePath, content, FileMode.CreateNew);
+        }
+        // Check if the file should be only compressed.
+        else if (compression) {
+            WriteToCompressedFile(filePath, content, FileMode.CreateNew);
         }
         else {
             WriteToFile(filePath, content, FileMode.CreateNew);
@@ -94,21 +112,27 @@ public class DataManager : MonoBehaviour {
     /// <returns>Wheter the file has been changed outside of the DataManager class or not.</returns>
     public bool TryReadFromFile(string fileName, out string content) {
         content = string.Empty;
-        bool sameHash = true;
+        bool sameHash = false;
 
         FileData fileData = GetFileData(fileName);
         if (fileData == null) {
-            return;
+            return sameHash;
         }
 
         // Check if hashing is enabled and we therefore saved the latest hash in fileData.
-        if (string.IsNullOrEmpty(fileData.FileHash)) {
+        if (!string.IsNullOrEmpty(fileData.FileHash)) {
             sameHash = CompareFileHash(fileData);
+        }
+        else {
+            sameHash = true;
         }
 
         // Check if encryption is enabled and we therefore saved a key in fileData.
-        if (!fileData.FileKey.IsNullOrEmpty()) {
+        if (!IsNullOrEmpty(fileData.FileKey)) {
             content = ReadFromEncryptedFile(fileData);
+        }
+        else if (fileData.FileCompression) {
+            content = ReadFromCompressedFile(fileData);
         }
         else {
             content = File.ReadAllText(fileData.FilePath);
@@ -167,9 +191,12 @@ public class DataManager : MonoBehaviour {
         }
 
         // Check if encryption is enabled and we therefore saved a key in fileData.
-        if (!fileData.FileKey.IsNullOrEmpty()) {
+        if (!IsNullOrEmpty(fileData.FileKey)) {
             byte[] fileKey = WriteToEncryptedFile(fileData.FilePath, content, FileMode.Create);
             fileData.FileKey = fileKey;
+        }
+        else if (fileData.FileCompression) {
+            WriteToCompressedFile(fileData.FilePath, content, FileMode.Create);
         }
         else {
             WriteToFile(fileData.FilePath, content, FileMode.Create);
@@ -199,7 +226,7 @@ public class DataManager : MonoBehaviour {
         }
 
         // Check if hashing is enabled and we therefore saved the latest hash in fileData.
-        if (string.IsNullOrEmpty(fileData.FileHash)) {
+        if (!string.IsNullOrEmpty(fileData.FileHash)) {
             // Check if the hash is still the same or if it was changed.
             if (!CompareFileHash(fileData)) {
                 // If it was don't append our given content to the file.
@@ -208,16 +235,27 @@ public class DataManager : MonoBehaviour {
         }
 
         // Check if encryption is enabled and we therefore saved a key in fileData.
-        if (!fileData.FileKey.IsNullOrEmpty()) {
-            byte[] fileKey = WriteToEncryptedFile(fileData.FilePath, content, FileMode.Append);
+        if (!IsNullOrEmpty(fileData.FileKey)) {
+            // We have to read the whole current content of the file,
+            // append our new content and rewrite it all,
+            // this has to be done because we can't just simply append to a encrypted file,
+            // as the key is generated based on the content and if we create the key
+            // only for the new content it will not be equal to the actual key needed
+            // so reading the file won't succed and only return encrypted text.
+            string currentContent = ReadFromEncryptedFile(fileData);
+            string newContent = currentContent + content;
+            byte[] fileKey = WriteToEncryptedFile(fileData.FilePath, newContent, FileMode.Create);
             fileData.FileKey = fileKey;
+        }
+        else if (fileData.FileCompression) {
+            WriteToCompressedFile(fileData.FilePath, content, FileMode.Append);
         }
         else {
             WriteToFile(fileData.FilePath, content, FileMode.Append);
         }
 
         // Check if hashing is enabled and we therefore saved the latest hash in fileData.
-        if (string.IsNullOrEmpty(fileData.FileHash)) {
+        if (!string.IsNullOrEmpty(fileData.FileHash)) {
             fileData.FileHash = GetFileHash(fileData.FilePath);
         }
 
@@ -254,7 +292,7 @@ public class DataManager : MonoBehaviour {
             return success;
         }
         // Check if the file exists at the given path.
-        else if (!CheckFile(fileData.FilePath, false)) {
+        else if (!CheckFile(fileData.FilePath, true)) {
             return success;
         }
 
@@ -273,14 +311,13 @@ public class DataManager : MonoBehaviour {
     /// <returns>The data of the given file.</returns>
     private FileData GetFileData(string fileName) {
         // Get fileData from the dictionary and return an empty string and a warning if it wasn't created yet.
-        if (fileDictionary.TryGetValue(fileName, out fileData)) {
+        if (fileDictionary.TryGetValue(fileName, out FileData fileData)) {
             return fileData;
         }
 
         Debug.LogWarning("File has not been created yet with the given name: " + fileName);
         return null;
     }
-
 
     /// <summary>
     /// Checks if a given file exists and prints an error if the expected result is not equal to the actual result.
@@ -291,15 +328,17 @@ public class DataManager : MonoBehaviour {
     /// this influences when and what message will be printed out as a warning.
     /// </param>
     /// <returns>Wheter the file exists or not.</returns>
-    private bool CheckFile(string filePath, bool fileExists = true) {
+    private bool CheckFile(string filePath, bool fileExists = false) {
         bool result = TryGetFileState(filePath, fileExists, out string message);
-        Debug.LogWarning(message);
+        if (message != string.Empty) {
+            Debug.LogWarning(message);
+        }
         return result;
     }
 
     /// <summary>
     /// Attempts to get the current file state (exists or doesn't exist) and returns a message
-    // depeding on the expected and the actual file state.
+    /// depeding on the expected and the actual file state.
     /// </summary>
     /// <param name="filePath">Name of the given file that we want to get the values from.</param>
     /// <param name="expected">
@@ -313,7 +352,8 @@ public class DataManager : MonoBehaviour {
 
         // Don't log a warning when we achieved our expected FileState.
         if (expected == actual) {
-            return;
+            message = string.Empty;
+            return actual;
         }
 
         message = GetMessage(filePath, actual);
@@ -332,7 +372,7 @@ public class DataManager : MonoBehaviour {
     /// <returns>Message we can print out.</returns>
     private string GetMessage(string filePath, bool fileExists) {
         string fileName = Path.GetFileNameWithoutExtension(filePath);
-        string directory = Path.GetDirectory(filePath);
+        string directory = Path.GetDirectoryName(filePath);
         string message = string.Empty;
 
         if (fileExists) {
@@ -350,7 +390,7 @@ public class DataManager : MonoBehaviour {
     /// </summary>
     /// <param name="arr">Array we want to check.</param>
     /// <returns>Wheter the given byte array is null or has no content.</returns>
-    private bool IsNullOrEmpty(this byte[] arr) {
+    private bool IsNullOrEmpty(byte[] arr) {
         return (arr == null || arr.Length <= 0);
     }
 
@@ -361,7 +401,7 @@ public class DataManager : MonoBehaviour {
     private void RemoveFromDictionary(string fileName) {
         // Remove the data from the dictionary.
         fileDictionary.Remove(fileName);
-        UpdateSaveFile();
+        UpdateFileNames();
     }
 
     /// <summary>
@@ -372,7 +412,7 @@ public class DataManager : MonoBehaviour {
     private void AddToDictionary(string fileName, FileData fileData) {
         // Add the data to the dictionary.
         fileDictionary.Add(fileName, fileData);
-        UpdateSaveFile();
+        UpdateFileNames();
     }
 
     /// <summary>
@@ -443,13 +483,11 @@ public class DataManager : MonoBehaviour {
             }
 
             // Create CryptoStream, wrapping FileStream.
-            using (var iStream = new CryptoStream(fileStream, aes.CreateEncryptor(fileKey, input), CryptoStreamMode.Write)) {
-                // Create a StreamReader, wrapping CryptoStream.
-                using (var streamWriter = new StreamWriter(iStream)) {
-                    // Write to the innermost stream (which will encrypt).
-                    streamWriter.Write(content);
-                }
-            }
+            using (var iStream = new CryptoStream(fileStream, aes.CreateEncryptor(fileKey, input), CryptoStreamMode.Write))
+            // Create a StreamReader, wrapping CryptoStream.
+            using (var streamWriter = new StreamWriter(iStream))
+            // Write to the innermost stream (which will encrypt).
+            streamWriter.Write(content);
         }
 
         return fileKey;
@@ -472,13 +510,11 @@ public class DataManager : MonoBehaviour {
             // Read the IV from the file.
             fileStream.Read(output, 0, output.Length);
             // Create CryptoStream, wrapping FileStream.
-            using (var oStream = new CryptoStream(fileStream, aes.CreateDecryptor(fileData.FileKey, output), CryptoStreamMode.Read)) {
-                // Create a StreamReader, wrapping CryptoStream.
-                using (var streamReader = new StreamReader(oStream)) {
-                    // Read the entire file into a string value.
-                    content = streamReader.ReadToEnd();
-                }
-            }
+            using (var oStream = new CryptoStream(fileStream, aes.CreateDecryptor(fileData.FileKey, output), CryptoStreamMode.Read))
+            // Create a StreamReader, wrapping CryptoStream.
+            using (var streamReader = new StreamReader(oStream))
+            // Read the entire file into a string value.
+            content = streamReader.ReadToEnd();
         }
 
         return content;
@@ -508,64 +544,58 @@ public class DataManager : MonoBehaviour {
     }
 
     /// <summary>
+    /// Writes the given content to the given file and compressed it as well.
+    /// </summary>
+    /// <param name="filePath">File we want to write the content into.</param>
+    /// <param name="content">Content we want to write into the given file.</param>
+    /// <param name="fileMode">Mode the file should be accesed as.</param>
+    private void WriteToCompressedFile(string filePath, string content, FileMode fileMode) {
+        // Create FileStream for opening and reading from the FileInfo object.
+        using (var compressedFileStream = new FileStream(filePath, fileMode)) {
+            // Check if we even need to write something to the currently open FileStream.
+            if (content == string.Empty) {
+                return;
+            }
+
+            // Create a FileStream for creating files.
+            using (var compressionStream = new GZipStream(compressedFileStream, CompressionMode.Compress))
+            // Create a StreamReader, wrapping CryptoStream.
+            using (var streamWriter = new StreamWriter(compressionStream))
+            // Write to the innermost stream (which will encrypt).
+            streamWriter.Write(content);
+        }
+
+        return;
+    }
+
+    /// <summary>
+    /// Reads everything from the given compressed file.
+    /// </summary>
+    /// <param name="fileData">File we want to read the content from.</param>
+    /// <returns>Decompressed content that was contained in the file.</returns>
+    private string ReadFromCompressedFile(FileData fileData) {
+        string content = string.Empty;
+
+        // Create FileStream for opening files.
+        using (var decompressedFileStream = new FileStream(fileData.FilePath, FileMode.Open))
+        // Create GZipStream, wrapping the CryptoStream.
+        using (var decompressionStream = new GZipStream(decompressedFileStream, CompressionMode.Decompress))
+        // Create a StreamReader, wrapping GZipStream.
+        using (var streamReader = new StreamReader(decompressionStream))
+        // Read the entire file into a string value.
+        content = streamReader.ReadToEnd();
+
+        return content;
+    }
+
+    /// <summary>
     /// Gets the file hash of a given files contents.
     /// </summary>
     /// <param name="filePath">File we want to create the hash for.</param>
     /// <returns>Hash representing the given files current content.</returns>
     private string GetFileHash(string filePath) {
         byte[] buffer = File.ReadAllBytes(filePath);
-        using (var sha1 = new SHA1CryptoServiceProvider()) {
-            return string.Concat(sha1.ComputeHash(buffer).Select(x => x.ToString("X2")));
-        }
-    }
-    
-    /// <summary>
-    /// Takes the original file and replaces it with the compressed version of itself.
-    /// </summary>
-    /// <param name="filePath">File we want to compress.</param>
-    /// <returns>Path to the newly created compressed version of the given file.</returns>
-    private string CompressFile(string filePath) {
-        string compressedFilePath = filePath + ".gz";
-        var fileToCompress = new FileInfo(filePath);
-
-        // Create FileStream for opening and reading from the FileInfo object.
-        using (var originalFileStream = fileToCompress.OpenRead()) {
-            // Check if the given file was already compressed before.
-            if ((File.GetAttributes(fileToCompress.FullName) & FileAttributes.Hidden) != FileAttributes.Hidden & fileToCompress.Extension != ".gz") {
-                Debug.LogWarning("Given file with the name: " + fileToCompress.Name + " has already been compressed before.");
-                return filePath;
-            }
-
-            // Create FileStream, wrapping the OpenRead FileStream.
-            using (var compressedFileStream = File.Create(compressedFilePath)) {
-                // Create GZipStream, wrapping the Create FileStream.
-                using (var compressionStream = new GZipStream(compressedFileStream, CompressionMode.Compress)) {
-                    originalFileStream.CopyTo(compressionStream);
-                }
-            }
-        }
-        return compressedFilePath;
-    }
-
-    /// <summary>
-    /// Takes the compressed file and replaces it with the uncompressed version of itself.
-    /// </summary>
-    /// <param name="filePath">File we want to decompress.</param>
-    private void DecompressFile(string filePath) {
-        var fileToDecompress = new FileInfo(filePath);
-
-        // Create FileStream for opening and reading from the FileInfo object.
-        using (var originalFileStream = fileToDecompress.OpenRead()) {
-            // Extract the ".gz" extension from the filePath.
-            string newFilePath = filePath.Remove(filePath.Length - fileToDecompress.Extension.Length);
-
-            // Create FileStream, wrapping the OpenRead FileStream.
-            using (var decompressedFileStream = File.Create(newFilePath)) {
-                // Create GZipStream, wrapping the Create FileStream.
-                using (var decompressionStream = new GZipStream(originalFileStream, CompressionMode.Decompress)) {
-                    decompressionStream.CopyTo(decompressedFileStream);
-                }
-            }
-        }
+        using (var sha1 = new SHA1CryptoServiceProvider())
+        return string.Concat(sha1.ComputeHash(buffer).Select(x => x.ToString("X2")));
     }
 }
