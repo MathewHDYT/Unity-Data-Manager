@@ -35,19 +35,6 @@ public class DataManager : MonoBehaviour {
     }
     #endregion
 
-    private void Start() {
-        DeleteFile("Example");
-        string path = @"C:\Users\mathe\Downloads";
-        string name = "Example";
-        string input = "Test349823904712389047123890471238904712389047123890471238905612389561239571289047123890472389zuisfghafjkasd jkfhdba2cv34279847c23n894vn12crfasdjkfh423905v298f57h1213890471238947123894723f8957123j523490523489v57jjghjkdfhgksdfhgksdfjlhgjksdfhgjksdfhgjsdfkhgjasweiouroiqwhgvlcnxm,vyxcm,vbkfasöfklsdjrwejriopeuqeutouwehlfcbvxcbvm,yxbvjksdhfoajriopeqwuriezrtgerhbfvdbcyxvm,nbdfglbaösdfjapoweruqw39et5q34897582346579zfguisdklfajkfhjkashfjkasdbvkvbmc,xbvnbsdfkghasjhlörtweioptzuqwztuihfgvbcyx,vbksdhnjfsdhjkhasdjiofhasduiofhbvjioasbnvjopuofhpwioauraicvkahsdvjiopbasdjklvasuzhroiaszhruiopuaesriophasodfkcfhnasvnasdkövnoiparuaweiorhasbncvlösdanvklbnkalnboasrioaurklafnlasdnlfnasdlkbagoasdhtfgioasjtäajsd¨rfasdü0fuopasdgfasdhgfsdklöfuzioasuzruehjasdjklbvkasdbdj dasfhasdfzhasduozfuiasdghfjasdljfhasdjkof.\n";
-        CreateNewFile(name, input, path, ".txt", true, false, false);
-        for (int i = 0; i < 100; i++) {
-            AppendFileContent(name, input);
-        }
-        TryReadFromFile(name, out string content);
-        Debug.Log(content);
-    }
-
     private const string FILENAME_FILE = "fileNames.save";
     private Dictionary<string, FileData> fileDictionary = new Dictionary<string, FileData>();
 
