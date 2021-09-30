@@ -52,7 +52,7 @@ To simply use the Data Manager in your own project without downloading the Unity
 This documentation strives to explain how to start using the Data Manager in your project and explains how to call and how to use its publicly accesible methods correctly.
 
 ## Reference to Data Manager Script
-To use the Data Manager to start playing sounds outside of itself you need to reference it. As the Data Manager is a [Singelton](https://stackoverflow.com/questions/2155688/what-is-a-singleton-in-c) this can be done easily when we get the instance and save it as a private variable in the script that uses the Data Manager.
+To use the Data Manager to start creating/reading files outside of itself you need to reference it. As the Data Manager is a [Singelton](https://stackoverflow.com/questions/2155688/what-is-a-singleton-in-c) this can be done easily when we get the instance and save it as a private variable in the script that uses the Data Manager.
 
 ```csharp
 private DataManager dm;
