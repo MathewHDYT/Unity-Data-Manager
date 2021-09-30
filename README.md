@@ -236,4 +236,4 @@ else {
 ```
 
 **When to use it:**
-WHen you want to delete a file and unregister it from the environment, if it is for example no longer needed.
+When you want to delete a file and unregister it from the environment, if it is for example no longer needed.
