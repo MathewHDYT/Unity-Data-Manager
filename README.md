@@ -156,7 +156,7 @@ else {
 ```
 
 **When to use it:**
-WHen you want to move the file location of a registered file.
+When you want to move the file location of a registered file.
 
 ### Update File Content method
 **What it does:**
@@ -178,7 +178,7 @@ else {
 ```
 
 **When to use it:**
-WHen you want to replace the current content of a registered file with the newly given content, so that the old content is overwritten.
+When you want to replace the current content of a registered file with the newly given content, so that the old content is overwritten.
 
 ### Append File Content method
 **What it does:**
