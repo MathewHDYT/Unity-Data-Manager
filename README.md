@@ -195,7 +195,7 @@ if (dm.AppendFileContent(fileName, content)) {
     Debug.Log("Appending the content: " + content + " to the file was succesfull");
 }
 else {
-    Debug.Log("Appending the content: " + content + " to the file failed"));
+    Debug.Log("Appending the content: " + content + " to the file failed");
 }
 ```
 
