@@ -6,6 +6,7 @@
 [![GitHub downloads](https://img.shields.io/github/downloads/MathewHDYT/Unity-Data-Manager-UDM/all.svg?style=flat-square)](https://github.com/MathewHDYT/Unity-Data-Manager-UDM/releases/)
 
 # Unity Data Manager (UDM)
+Used to create, manage and load data via. files on the system easily and permanently over multiple game sessions. 
 
 ## Contents
 - [Unity Data Manager (UDM)](#unity-data-manager-udm)
