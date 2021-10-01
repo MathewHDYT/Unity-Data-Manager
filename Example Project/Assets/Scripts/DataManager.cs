@@ -96,6 +96,7 @@ public class DataManager : MonoBehaviour {
     /// Reads all the content from the given file and returns it as plain text.
     /// </summary>
     /// <param name="fileName">Name of the given file that should be read from.</param>
+    /// <param name="content">Variable that the plain text that we read will be copied into.</param>
     /// <returns>Wheter the file has been changed outside of the DataManager class or not.</returns>
     public bool TryReadFromFile(string fileName, out string content) {
         content = string.Empty;
