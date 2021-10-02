@@ -56,8 +56,10 @@ public class DataManager : MonoBehaviour {
 
         // Get the filePath from the given values and save it into our FileData.
         string filePath = Path.Combine(directoryPath, fileName + fileEnding);
-        byte[] fileKey = null;
-        string fileHash = string.Empty;
+
+        // Add dummy data to ensure we set them if the corresponding bools are enabled.
+        byte[] fileKey = encryption ? new byte[1] : null;
+        string fileHash = compression ? "c" : string.Empty;
 
         // Check if the file exists already at the given path.
         if (CheckFile(filePath)) {
@@ -70,33 +72,16 @@ public class DataManager : MonoBehaviour {
             return;
         }
 
-        // Check if the file should be only encrypted.
-        if (encryption) {
-            fileKey = WriteToEncryptedFile(filePath, content, FileMode.CreateNew);
-        }
-        // Check if the file should be only compressed.
-        else if (compression) {
-            WriteToCompressedFile(filePath, content, FileMode.CreateNew);
-        }
-        else {
-            WriteToFile(filePath, content, FileMode.CreateNew);
-        }
-
-        // Check if the file should be hashed.
-        if (hashing) {
-            fileHash = GetFileHash(filePath);
-        }
-
         // Add data of the newly created file to the dictionary.
         FileData fileData = new FileData(filePath, fileHash, fileKey, compression);
         AddToDictionary(fileName, fileData);
+        DetectWriteMode(fileData, content, FileMode.CreateNew);
     }
 
     /// <summary>
     /// Reads all the content from the given file and returns it as plain text.
     /// </summary>
     /// <param name="fileName">Name of the given file that should be read from.</param>
-    /// <param name="content">Variable that the plain text that we read will be copied into.</param>
     /// <returns>Wheter the file has been changed outside of the DataManager class or not.</returns>
     public bool TryReadFromFile(string fileName, out string content) {
         content = string.Empty;
@@ -116,7 +101,7 @@ public class DataManager : MonoBehaviour {
         }
 
         // Check if encryption is enabled and we therefore saved a key in fileData.
-        if (!IsNullOrEmpty(fileData.FileKey)) {
+        if (!IsByteArrayNullOrEmpty(fileData.FileKey)) {
             content = ReadFromEncryptedFile(fileData);
         }
         else if (fileData.FileCompression) {
@@ -178,23 +163,7 @@ public class DataManager : MonoBehaviour {
             return success;
         }
 
-        // Check if encryption is enabled and we therefore saved a key in fileData.
-        if (!IsNullOrEmpty(fileData.FileKey)) {
-            byte[] fileKey = WriteToEncryptedFile(fileData.FilePath, content, FileMode.Create);
-            fileData.FileKey = fileKey;
-        }
-        else if (fileData.FileCompression) {
-            WriteToCompressedFile(fileData.FilePath, content, FileMode.Create);
-        }
-        else {
-            WriteToFile(fileData.FilePath, content, FileMode.Create);
-        }
-
-        // Check if hashing is enabled and we therefore saved the latest hash in fileData.
-        if (!string.IsNullOrEmpty(fileData.FileHash)) {
-            fileData.FileHash = GetFileHash(fileData.FilePath);
-        }
-
+        DetectWriteMode(fileData, content, FileMode.Create);
         success = true;
         return success;
     }
@@ -213,40 +182,14 @@ public class DataManager : MonoBehaviour {
             return success;
         }
 
-        // Check if hashing is enabled and we therefore saved the latest hash in fileData.
-        if (!string.IsNullOrEmpty(fileData.FileHash)) {
-            // Check if the hash is still the same or if it was changed.
-            if (!CompareFileHash(fileData)) {
-                // If it was don't append our given content to the file.
-                return success;
-            }
+        // Check if hashing is enabled and we therefore saved the latest hash in fileData,
+        // and check if the hash is still the same or if it was changed.
+        if (!string.IsNullOrEmpty(fileData.FileHash) && !CompareFileHash(fileData)) {
+            // If it was changed append our given content to the file.
+            return success;
         }
 
-        // Check if encryption is enabled and we therefore saved a key in fileData.
-        if (!IsNullOrEmpty(fileData.FileKey)) {
-            // We have to read the whole current content of the file,
-            // append our new content and rewrite it all,
-            // this has to be done because we can't just simply append to a encrypted file,
-            // as the key is generated based on the content and if we create the key
-            // only for the new content it will not be equal to the actual key needed
-            // so reading the file won't succed and only return encrypted text.
-            string currentContent = ReadFromEncryptedFile(fileData);
-            string newContent = currentContent + content;
-            byte[] fileKey = WriteToEncryptedFile(fileData.FilePath, newContent, FileMode.Create);
-            fileData.FileKey = fileKey;
-        }
-        else if (fileData.FileCompression) {
-            WriteToCompressedFile(fileData.FilePath, content, FileMode.Append);
-        }
-        else {
-            WriteToFile(fileData.FilePath, content, FileMode.Append);
-        }
-
-        // Check if hashing is enabled and we therefore saved the latest hash in fileData.
-        if (!string.IsNullOrEmpty(fileData.FileHash)) {
-            fileData.FileHash = GetFileHash(fileData.FilePath);
-        }
-
+        DetectWriteMode(fileData, content, FileMode.Append);
         success = true;
         return success;
     }
@@ -305,6 +248,35 @@ public class DataManager : MonoBehaviour {
 
         Debug.LogWarning("File has not been created yet with the given name: " + fileName);
         return null;
+    }
+
+    private void DetectWriteMode(FileData fileData, string content, FileMode fileMode) {
+        // Check if the file should be only encrypted.
+        if (!IsByteArrayNullOrEmpty(fileData.FileKey)) {
+            if (fileMode == FileMode.Append) {
+                // We have to read the whole current content of the file,
+                // append our new content and rewrite it all,
+                // this has to be done because we can't just simply append to a encrypted file,
+                // as the key is generated based on the content and if we create the key
+                // only for the new content it will not be equal to the actual key needed,
+                // so reading the file won't succed and only return encrypted text.
+                string currentContent = ReadFromEncryptedFile(fileData);
+                content = currentContent + content;
+            }
+            fileData.FileKey = WriteToEncryptedFile(fileData.FilePath, content, fileMode);
+        }
+        // Check if the file should be only compressed.
+        else if (fileData.FileCompression) {
+            WriteToCompressedFile(fileData.FilePath, content, fileMode);
+        }
+        else {
+            WriteToFile(fileData.FilePath, content, fileMode);
+        }
+
+        // Check if the file should be hashed.
+        if (!string.IsNullOrEmpty(fileData.FileHash)) {
+            fileData.FileHash = GetFileHash(fileData.FilePath);
+        }
     }
 
     /// <summary>
@@ -378,7 +350,7 @@ public class DataManager : MonoBehaviour {
     /// </summary>
     /// <param name="arr">Array we want to check.</param>
     /// <returns>Wheter the given byte array is null or has no content.</returns>
-    private bool IsNullOrEmpty(byte[] arr) {
+    private bool IsByteArrayNullOrEmpty(byte[] arr) {
         return (arr == null || arr.Length <= 0);
     }
 
