@@ -4,6 +4,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.IO.Compression;
 using UnityEngine;
+using System;
 
 public class DataManager : MonoBehaviour {
 
@@ -24,7 +25,8 @@ public class DataManager : MonoBehaviour {
         string filePath = Path.Combine(Application.persistentDataPath, FILENAME_FILE);
         // Check if there are already saved files in our system,
         // therefore the file was created last game session.
-        if (!CheckFileNotExists(filePath)) {
+        var err = CheckFileNotExists(filePath);
+        if (err == DataError.FILE_DOES_NOT_EXIST) {
             File.Create(filePath).Close();
         }
         else {
@@ -38,6 +40,16 @@ public class DataManager : MonoBehaviour {
     private const string FILENAME_FILE = "fileNames.save";
     private Dictionary<string, FileData> fileDictionary = new Dictionary<string, FileData>();
 
+    public enum DataError {
+        OK,
+        INVALID_ARGUMENT,
+        INVALID_PATH,
+        NOT_REGISTERED,
+        FILE_CORRUPTED,
+        FILE_ALREADY_EXISTS,
+        FILE_DOES_NOT_EXIST
+    }
+
     /// <summary>
     /// Creates a new file and writes the given text to it.
     /// </summary>
@@ -48,7 +60,7 @@ public class DataManager : MonoBehaviour {
     /// <param name="encryption">Wether the given file should be encrypted.</param>
     /// <param name="hashing">Wheter the given file should be checked for unexpected changes before using it.</param>
     /// <param name="compression">Wheter the given file should be compressed.</param>
-    public void CreateNewFile(string fileName, string content = "", string directoryPath = "", string fileEnding = ".txt", bool encryption = false, bool hashing = false, bool compression = false) {
+    public DataError CreateNewFile(string fileName, string content = "", string directoryPath = "", string fileEnding = ".txt", bool encryption = false, bool hashing = false, bool compression = false) {
         // Set the given directory to save into to the persisentDataPath if no different directoryPath was given.
         if (directoryPath == string.Empty) {
             directoryPath = Application.persistentDataPath;
@@ -59,23 +71,25 @@ public class DataManager : MonoBehaviour {
 
         // Add dummy data to ensure we set them if the corresponding bools are enabled.
         byte[] fileKey = encryption ? new byte[1] : null;
-        string fileHash = compression ? "c" : string.Empty;
+        string fileHash = hashing ? "h" : string.Empty;
 
         // Check if the file exists already at the given path.
-        if (CheckFileExists(filePath)) {
-            return;
+        var err = CheckFileExists(filePath);
+        if (err != DataError.OK) {
+            return err;
         }
 
         // Check if the file should be encrypted and compressed.
         if (encryption && compression) {
             Debug.LogWarning("File can't be both encrypted and compressed");
-            return;
+            return DataError.INVALID_ARGUMENT;
         }
 
         // Add data of the newly created file to the dictionary.
         FileData fileData = new FileData(filePath, fileHash, fileKey, compression);
         AddToDictionary(fileName, fileData);
         DetectWriteMode(fileData, content, FileMode.CreateNew);
+        return DataError.OK;
     }
 
     /// <summary>
@@ -83,35 +97,31 @@ public class DataManager : MonoBehaviour {
     /// </summary>
     /// <param name="fileName">Name of the given file that should be read from.</param>
     /// <returns>Wheter the file has been changed outside of the DataManager class or not.</returns>
-    public bool TryReadFromFile(string fileName, out string content) {
+    public DataError TryReadFromFile(string fileName, out string content) {
         content = string.Empty;
-        bool sameHash = false;
 
-        FileData fileData = GetFileData(fileName);
-        if (fileData == null) {
-            return sameHash;
+        ValueDataError valueDataError = GetFileData(fileName);
+        if (valueDataError.Error != DataError.OK) {
+            return DataError.NOT_REGISTERED;
         }
 
         // Check if hashing is enabled and we therefore saved the latest hash in fileData.
-        if (!string.IsNullOrEmpty(fileData.FileHash)) {
-            sameHash = CompareFileHash(fileData);
-        }
-        else {
-            sameHash = true;
+        if (!string.IsNullOrEmpty(valueDataError.Value.FileHash) && CompareFileHash(valueDataError.Value) != DataError.OK) {
+            return DataError.FILE_CORRUPTED;
         }
 
         // Check if encryption is enabled and we therefore saved a key in fileData.
-        if (!IsByteArrayNullOrEmpty(fileData.FileKey)) {
-            content = ReadFromEncryptedFile(fileData);
+        if (!IsByteArrayNullOrEmpty(valueDataError.Value.FileKey)) {
+            content = ReadFromEncryptedFile(valueDataError.Value);
         }
-        else if (fileData.FileCompression) {
-            content = ReadFromCompressedFile(fileData);
+        else if (valueDataError.Value.FileCompression) {
+            content = ReadFromCompressedFile(valueDataError.Value);
         }
         else {
-            content = File.ReadAllText(fileData.FilePath);
+            content = File.ReadAllText(valueDataError.Value.FilePath);
         }
 
-        return sameHash;
+        return DataError.OK;
     }
 
     /// <summary>
@@ -120,33 +130,30 @@ public class DataManager : MonoBehaviour {
     /// <param name="fileName">Name of the given file that should be moved.</param>
     /// <param name="directory">New directory the given file should be moved too.</param>
     /// <returns>Wheter changing the file path was succesfull or not.</returns>
-    public bool ChangeFilePath(string fileName, string directory) {
-        bool success = false;
-
-        FileData fileData = GetFileData(fileName);
-        if (fileData == null) {
-            return success;
+    public DataError ChangeFilePath(string fileName, string directory) {
+        ValueDataError valueDataError = GetFileData(fileName);
+        if (valueDataError.Error != DataError.OK) {
+            return DataError.NOT_REGISTERED;
         }
 
         // Check if the given path exists.
         if (!Directory.Exists(directory)) {
-            Debug.LogWarning("Given path: " + directory + " does not exist");
-            return success;
+            return DataError.INVALID_PATH;
         }
 
-        string name = Path.GetFileName(fileData.FilePath);
+        string name = Path.GetFileName(valueDataError.Value.FilePath);
         string filePath = Path.Combine(directory, name);
 
         // Check if the file exists already at the given path.
-        if (CheckFileExists(filePath)) {
-            return success;
+        var err = CheckFileExists(filePath);
+        if (err != DataError.OK) {
+            return err;
         }
 
         // Move the file to its new location and adjust the FilePath to the new value.
-        File.Move(fileData.FilePath, filePath);
-        fileData.FilePath = filePath;
-        success = true;
-        return success;
+        File.Move(valueDataError.Value.FilePath, filePath);
+        valueDataError.Value.FilePath = filePath;
+        return DataError.OK;
     }
 
     /// <summary>
@@ -155,17 +162,14 @@ public class DataManager : MonoBehaviour {
     /// <param name="fileName">Name of the given file that should have its content replaced.</param>
     /// <param name="content">Data that should be saved into the file.</param>
     /// <returns>Wheter updating the content of the file was succesfull or not.</returns>
-    public bool UpdateFileContent(string fileName, string content) {
-        bool success = false;
-
-        FileData fileData = GetFileData(fileName);
-        if (fileData == null) {
-            return success;
+    public DataError UpdateFileContent(string fileName, string content) {
+        ValueDataError valueDataError = GetFileData(fileName);
+        if (valueDataError.Error != DataError.OK) {
+            return DataError.NOT_REGISTERED;
         }
 
-        DetectWriteMode(fileData, content, FileMode.Create);
-        success = true;
-        return success;
+        DetectWriteMode(valueDataError.Value, content, FileMode.Create);
+        return DataError.OK;
     }
 
     /// <summary>
@@ -174,24 +178,21 @@ public class DataManager : MonoBehaviour {
     /// <param name="fileName">Name of the given file that should have the content appended.</param>
     /// <param name="content">Data that should be appended to the file.</param>
     /// <returns>Wheter appending the content to the file was succesfull or not.</returns>
-    public bool AppendFileContent(string fileName, string content) {
-        bool success = false;
-
-        FileData fileData = GetFileData(fileName);
-        if (fileData == null) {
-            return success;
+    public DataError AppendFileContent(string fileName, string content) {
+        ValueDataError valueDataError = GetFileData(fileName);
+        if (valueDataError.Error != DataError.OK) {
+            return DataError.NOT_REGISTERED;
         }
 
         // Check if hashing is enabled and we therefore saved the latest hash in fileData,
         // and check if the hash is still the same or if it was changed.
-        if (!string.IsNullOrEmpty(fileData.FileHash) && !CompareFileHash(fileData)) {
+        if (!string.IsNullOrEmpty(valueDataError.Value.FileHash) && CompareFileHash(valueDataError.Value) != DataError.OK) {
             // If it was changed append our given content to the file.
-            return success;
+            return DataError.FILE_CORRUPTED;
         }
 
-        DetectWriteMode(fileData, content, FileMode.Append);
-        success = true;
-        return success;
+        DetectWriteMode(valueDataError.Value, content, FileMode.Append);
+        return DataError.OK;
     }
 
     /// <summary>
@@ -199,15 +200,13 @@ public class DataManager : MonoBehaviour {
     /// </summary>
     /// <param name="fileName">Name of the given file that should have its hash checked.</param>
     /// <returns>Wheter the file hash is still the same as expected or if it has changed.</returns>
-    public bool CheckFileHash(string fileName) {
-        bool sameHash = false;
-
-        FileData fileData = GetFileData(fileName);
-        if (fileData == null) {
-            return sameHash;
+    public DataError CheckFileHash(string fileName) {
+        ValueDataError valueDataError = GetFileData(fileName);
+        if (valueDataError.Error != DataError.OK) {
+            return DataError.NOT_REGISTERED;
         }
 
-        return CompareFileHash(fileData);
+        return CompareFileHash(valueDataError.Value);
     }
 
     /// <summary>
@@ -215,24 +214,21 @@ public class DataManager : MonoBehaviour {
     /// </summary>
     /// <param name="fileName">Name of the given file that should be deleted.</param>
     /// <returns>Wheter deleting was succesful or not.</returns>
-    public bool DeleteFile(string fileName) {
-        bool success = false;
-        
-        FileData fileData = GetFileData(fileName);
-        if (fileData == null) {
-            return success;
+    public DataError DeleteFile(string fileName) {
+        ValueDataError valueDataError = GetFileData(fileName);
+        if (valueDataError.Error != DataError.OK) {
+            return DataError.NOT_REGISTERED;
         }
         // Check if the file exists at the given path.
-        else if (!CheckFileNotExists(fileData.FilePath)) {
-            return success;
+        var err = CheckFileNotExists(valueDataError.Value.FilePath);
+        if (err != DataError.OK) {
+            return err;
         }
 
-        File.Delete(fileData.FilePath);
-        fileData.DeleteRemote();
+        File.Delete(valueDataError.Value.FilePath);
+        valueDataError.Value.DeleteRemote();
         RemoveFromDictionary(fileName);
-
-        success = true;
-        return success;
+        return DataError.OK;
     }
 
     /// <summary>
@@ -240,14 +236,17 @@ public class DataManager : MonoBehaviour {
     /// </summary>
     /// <param name="fileName">Name of the given file that we want to get the values from.</param>
     /// <returns>The data of the given file.</returns>
-    private FileData GetFileData(string fileName) {
-        // Get fileData from the dictionary and return an empty string and a warning if it wasn't created yet.
+    private ValueDataError GetFileData(string fileName) {
+        var valueDataError = new ValueDataError(null, DataError.OK);
+        // Get fileData from the dictionary and return null and a warning if it wasn't created yet.
         if (fileDictionary.TryGetValue(fileName, out FileData fileData)) {
-            return fileData;
+            valueDataError.Error = DataError.NOT_REGISTERED;
+            return valueDataError;
         }
 
+        valueDataError.Value = fileData;
         Debug.LogWarning("File has not been created yet with the given name: " + fileName);
-        return null;
+        return valueDataError;
     }
 
     private void DetectWriteMode(FileData fileData, string content, FileMode fileMode) {
@@ -284,16 +283,17 @@ public class DataManager : MonoBehaviour {
     /// </summary>
     /// <param name="fileName">Name of the given file that we want to get the values from.</param>
     /// <returns>Wheter the file exists or not.</returns>
-    private bool CheckFileNotExists(string filePath) {
+    private DataError CheckFileNotExists(string filePath) {
         bool exists = File.Exists(filePath);
         
         if (exists) {
             string fileName = Path.GetFileNameWithoutExtension(filePath);
             string directory = Path.GetDirectoryName(filePath);
             Debug.LogWarning("There already exists a file with the name: " + fileName + " at the given folder: " + directory);
+            return DataError.FILE_ALREADY_EXISTS;
         }
         
-        return exists;
+        return DataError.OK;
     }
     
     /// <summary>
@@ -301,16 +301,17 @@ public class DataManager : MonoBehaviour {
     /// </summary>
     /// <param name="fileName">Name of the given file that we want to get the values from.</param>
     /// <returns>Wheter the file exists or not.</returns>
-    private bool CheckFileExists(string filePath) {
+    private DataError CheckFileExists(string filePath) {
         bool exists = File.Exists(filePath);
         
         if (!exists) {
             string fileName = Path.GetFileNameWithoutExtension(filePath);
             string directory = Path.GetDirectoryName(filePath);
             Debug.LogWarning("There doesn't exist a file with the name: " + fileName + " at the given folder: " + directory);
+            return DataError.FILE_DOES_NOT_EXIST;
         }
-        
-        return exists;
+
+        return DataError.OK;
     }
 
     /// <summary>
@@ -379,9 +380,12 @@ public class DataManager : MonoBehaviour {
     /// </summary>
     /// <param name="fileData">File we want to check the hash from.</param>
     /// <returns>Wheter the expected and actual file hash are the same.</returns>
-    private bool CompareFileHash(FileData fileData) {
+    private DataError CompareFileHash(FileData fileData) {
         string currentHash = GetFileHash(fileData.FilePath);
-        return string.Equals(currentHash, fileData.FileHash);
+        if (!string.Equals(currentHash, fileData.FileHash)) {
+            return DataError.FILE_CORRUPTED;
+        }
+        return DataError.OK;
     }
 
     /// <summary>
