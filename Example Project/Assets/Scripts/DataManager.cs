@@ -47,11 +47,12 @@ public class DataManager : MonoBehaviour {
         NOT_REGISTERED,
         FILE_CORRUPTED,
         FILE_ALREADY_EXISTS,
-        FILE_DOES_NOT_EXIST
+        FILE_DOES_NOT_EXIST,
+        FILE_MISSING_DEPENDENCIES
     }
 
     /// <summary>
-    /// Creates a new file and writes the given text to it.
+    /// Creates a new file in the given directory with the given fileName and fileEnding and writes the given text to it, with the given file settings.
     /// </summary>
     /// <param name="fileName">Name the given file should have (is used as the ID so make sure it's unique).</param>
     /// <param name="content">Inital data that should be saved into the file.</param>
@@ -60,6 +61,7 @@ public class DataManager : MonoBehaviour {
     /// <param name="encryption">Wether the given file should be encrypted.</param>
     /// <param name="hashing">Wheter the given file should be checked for unexpected changes before using it.</param>
     /// <param name="compression">Wheter the given file should be compressed.</param>
+    /// <returns>DataError, showing wheter and how creating the file failed.</returns>
     public DataError CreateNewFile(string fileName, string content = "", string directoryPath = "", string fileEnding = ".txt", bool encryption = false, bool hashing = false, bool compression = false) {
         // Set the given directory to save into to the persisentDataPath if no different directoryPath was given.
         if (directoryPath == string.Empty) {
@@ -96,7 +98,7 @@ public class DataManager : MonoBehaviour {
     /// Reads all the content from the given file and returns it as plain text.
     /// </summary>
     /// <param name="fileName">Name of the given file that should be read from.</param>
-    /// <returns>Wheter the file has been changed outside of the DataManager class or not.</returns>
+    /// <returns>DataError, showing wheter and how reading the file failed.</returns>
     public DataError TryReadFromFile(string fileName, out string content) {
         content = string.Empty;
 
@@ -129,7 +131,7 @@ public class DataManager : MonoBehaviour {
     /// </summary>
     /// <param name="fileName">Name of the given file that should be moved.</param>
     /// <param name="directory">New directory the given file should be moved too.</param>
-    /// <returns>Wheter changing the file path was succesfull or not.</returns>
+    /// <returns>DataError, showing wheter and how changing the file path failed.</returns>
     public DataError ChangeFilePath(string fileName, string directory) {
         ValueDataError valueDataError = GetFileData(fileName);
         if (valueDataError.Error != DataError.OK) {
@@ -161,7 +163,7 @@ public class DataManager : MonoBehaviour {
     /// </summary>
     /// <param name="fileName">Name of the given file that should have its content replaced.</param>
     /// <param name="content">Data that should be saved into the file.</param>
-    /// <returns>Wheter updating the content of the file was succesfull or not.</returns>
+    /// <returns>DataError, showing wheter and how updating the file content failed.</returns>
     public DataError UpdateFileContent(string fileName, string content) {
         ValueDataError valueDataError = GetFileData(fileName);
         if (valueDataError.Error != DataError.OK) {
@@ -177,7 +179,7 @@ public class DataManager : MonoBehaviour {
     /// </summary>
     /// <param name="fileName">Name of the given file that should have the content appended.</param>
     /// <param name="content">Data that should be appended to the file.</param>
-    /// <returns>Wheter appending the content to the file was succesfull or not.</returns>
+    /// <returns>DataError, showing wheter and how appending the given content to the file failed.</returns>
     public DataError AppendFileContent(string fileName, string content) {
         ValueDataError valueDataError = GetFileData(fileName);
         if (valueDataError.Error != DataError.OK) {
@@ -200,10 +202,14 @@ public class DataManager : MonoBehaviour {
     /// </summary>
     /// <param name="fileName">Name of the given file that should have its hash checked.</param>
     /// <returns>Wheter the file hash is still the same as expected or if it has changed.</returns>
+    /// <returns>DataError, showing wheter the file hash is still the same as expected or if it has changed.</returns>
     public DataError CheckFileHash(string fileName) {
         ValueDataError valueDataError = GetFileData(fileName);
         if (valueDataError.Error != DataError.OK) {
             return DataError.NOT_REGISTERED;
+        }
+        else if (!string.IsNullOrEmpty(valueDataError.Value.FileHash)) {
+            return DataError.FILE_MISSING_DEPENDENCIES
         }
 
         return CompareFileHash(valueDataError.Value);
@@ -213,7 +219,7 @@ public class DataManager : MonoBehaviour {
     /// Deletes the given file and all its remote counterparts.
     /// </summary>
     /// <param name="fileName">Name of the given file that should be deleted.</param>
-    /// <returns>Wheter deleting was succesful or not.</returns>
+    /// <returns>DataError, showing wheter deleting the file was succesful or not.</returns>
     public DataError DeleteFile(string fileName) {
         ValueDataError valueDataError = GetFileData(fileName);
         if (valueDataError.Error != DataError.OK) {
@@ -235,7 +241,10 @@ public class DataManager : MonoBehaviour {
     /// Attempts to get the corresponding value for the given key from the file dictionary.
     /// </summary>
     /// <param name="fileName">Name of the given file that we want to get the values from.</param>
-    /// <returns>The data of the given file.</returns>
+    /// <returns>
+    /// ValueDataError, containing the value conisting of the data of the given file and
+    /// the error, showing wheter getting the data of the given file was succesful or not.
+    /// </returns>
     private ValueDataError GetFileData(string fileName) {
         var valueDataError = new ValueDataError(null, DataError.OK);
         // Get fileData from the dictionary and return null and a warning if it wasn't created yet.
@@ -249,6 +258,13 @@ public class DataManager : MonoBehaviour {
         return valueDataError;
     }
 
+    
+    /// <summary>
+    /// Detects in which mode we want to write to the given file (encrypted, compressed, normal) and writes to the given file.
+    /// </summary>
+    /// <param name="fileData">Data of the given file we want to write to.</param>
+    /// <param name="content">Content we want to write to the file.</param>
+    /// <param name="fileMode">Mode the file should be written into.</param>
     private void DetectWriteMode(FileData fileData, string content, FileMode fileMode) {
         // Check if the file should be only encrypted.
         if (!IsByteArrayNullOrEmpty(fileData.FileKey)) {
@@ -282,7 +298,7 @@ public class DataManager : MonoBehaviour {
     /// Checks if a given file exists and prints an error if it does not.
     /// </summary>
     /// <param name="fileName">Name of the given file that we want to get the values from.</param>
-    /// <returns>Wheter the file exists or not.</returns>
+    /// <returns>DataError, showing wheter the given file already exists.</returns>
     private DataError CheckFileNotExists(string filePath) {
         bool exists = File.Exists(filePath);
         
@@ -300,7 +316,7 @@ public class DataManager : MonoBehaviour {
     /// Checks if a given file exists and prints an error if it does.
     /// </summary>
     /// <param name="fileName">Name of the given file that we want to get the values from.</param>
-    /// <returns>Wheter the file exists or not.</returns>
+    /// <returns>DataError, showing wheter the given doesn't already exist.</returns>
     private DataError CheckFileExists(string filePath) {
         bool exists = File.Exists(filePath);
         
@@ -379,7 +395,7 @@ public class DataManager : MonoBehaviour {
     /// To ensure it hasn't been changed since we last accesed it ourselves.
     /// </summary>
     /// <param name="fileData">File we want to check the hash from.</param>
-    /// <returns>Wheter the expected and actual file hash are the same.</returns>
+    /// <returns>DataError, showing wheter the hash of the given file is still the same as expected or not.</returns>
     private DataError CompareFileHash(FileData fileData) {
         string currentHash = GetFileHash(fileData.FilePath);
         if (!string.Equals(currentHash, fileData.FileHash)) {
