@@ -15,6 +15,7 @@ Used to create, manage and load data via. files on the system easily and permane
   - [Installation](#installation)
 - [Documentation](#documentation)
   - [Reference to Data Manager Script](#reference-to-data-manager-script)
+  - [Possible Errors](#possible-errors)
   - [Public accesible methods](#public-accesible-methods)
   	- [Create New File method](#create-new-file-method)
   	- [Try Read From File method](#try-read-from-file-method)
@@ -77,12 +78,25 @@ private void Start() {
 }
 ```
 
+## Possible Errors
+
+| **ID** | **CONSTANT**                  | **MEANING**                                                                                    |
+| -------| ------------------------------| -----------------------------------------------------------------------------------------------|
+| 0      | OK                            | Method succesfully executed                                                                    |
+| 1      | INVALID_ARGUMENT              | Can not both encrypt and compress a file                                                       |
+| 2      | INVALID_PATH                  | Given path does not exists in the local system                                                 |
+| 3      | NOT_REGISTERED                | File has not been registered with the create file function yet                                 |
+| 4      | FILE_CORRUPTED                | File has been changed outside of the environment, accessing might not be save anymore          |
+| 5      | FILE_ALREADY_EXISTS           | A file already exists at the same path, choose a different name or directory                   |
+| 6      | FILE_DOES_NOT_EXIST           | There is no file with the given name in the given directory, ensure it wasn't moved or deleted |
+| 7      | FILE_MISSING_DEPENDENCIES     | Tried to compare hash, but hasing has not been enabled for the registered file                 |
+
 ## Public accesible methods
 This section explains all public accesible methods, especially what they do, how to call them and when using them might be advantageous instead of other methods. We always assume DataManager instance has been already referenced in the script. If you haven't done that already see [Reference to Data Manager Script](#reference-to-data-manager-script).
 
 ### Create New File method
 **What it does:**
-Creates and registers a new file with the possible options and content you want to write into that file.
+Creates and registers a new file with the given properties, writes the given text to it and returns an DataError (see [Possible Errors](#possible-errors)), showing wheter and how creating the file failed.
 
 **How to call it:**
 - ```FileName``` is the name without extension we have given the file we want to register and create
@@ -101,14 +115,26 @@ string fileEnding = ".txt";
 bool encryption = false;
 bool hashing = false;
 bool compression = false;
-dm.CreateNewFile(fileName, content, directoryPath, fileEnding, encryption, hashing, compression);
+DataManager.DataError err = dm.CreateNewFile(fileName, content, directoryPath, fileEnding, encryption, hashing, compression);
+if (err != DataManager.DataError.OK) {
+    Debug.Log("Creating file failed with error id: ", err);
+}
+else {
+    Debug.Log("Creating file succesfull");
+}
 ```
 
 Alternatively you can call the methods with less paramters as some of them have default arguments.
 
 ```csharp
 string fileName = "save";
-dm.CreateNewFile(fileName);
+DataManager.DataError err = dm.CreateNewFile(fileName);
+if (err != DataManager.DataError.OK) {
+    Debug.Log("Creating file failed with error id: ", err);
+}
+else {
+    Debug.Log("Creating file succesfull");
+}
 ```
 
 **When to use it:**
@@ -116,7 +142,7 @@ When you want to register and create a new file with the system so it can be use
 
 ### Try Read From File method
 **What it does:**
-Reads the content of a registered file and returns it as plain text, as well as a boolean deciding wheter the hash was changed outside the environment, if it was enabled for the given file in the [Create New File method](#create-new-file-method).
+Reads the content of a registered file and returns it as plain text, as well as an DataError (see [Possible Errors](#possible-errors)), showing wheter and how creating the file failed.
 
 **How to call it:**
 - ```FileName``` is the name without extension we have given the registered file and want to read now
@@ -125,11 +151,12 @@ Reads the content of a registered file and returns it as plain text, as well as 
 ```csharp
 string fileName = "save";
 string content = "";
-if (dm.TryReadFromFile(fileName, content)) {
-    Debug.Log("Reading the file was succesfull, it has not been modified outside of the environment, with the read data being: " + content);
+DataManager.DataError err = dm.TryReadFromFile(fileName, content);
+if (err != DataManager.DataError.OK) {
+    Debug.Log("Reading file failed with error id: ", err);
 }
 else {
-    Debug.Log("Reading the file failed, as the file has been modified outside of the environment");
+    Debug.Log("Reading file succesfull with the content being: " + content);
 }
 ```
 
@@ -138,7 +165,7 @@ When you want to read the content of a registered file and additionaly if enable
 
 ### Change File Path method
 **What it does:**
-Moves the file location of a registered file to the new directory and returns true if it succeded.
+Changes the file location of a registered file to the new directory and returns an DataError (see [Possible Errors](#possible-errors)), showing wheter and how changing the file path failed.
 
 **How to call it:**
 - ```FileName``` is the name without extension we have given the registered file and want to move now
@@ -147,11 +174,12 @@ Moves the file location of a registered file to the new directory and returns tr
 ```csharp
 string fileName = "save";
 string directory = Application.persistentDataPath;
-if (dm.ChangeFilePath(fileName, directory)) {
-    Debug.Log("Moving the file to the new directory: " + directory + " was succesfull");
+DataManager.DataError err = dm.ChangeFilePath(fileName, directory);
+if (err != DataManager.DataError.OK) {
+    Debug.Log("Changing file path failed with error id: ", err);
 }
 else {
-    Debug.Log("Moving the file to the new directory: " + directory + " failed");
+    Debug.Log("Changing file path succesfull to new directory: " + directory);
 }
 ```
 
@@ -160,7 +188,7 @@ When you want to move the file location of a registered file.
 
 ### Update File Content method
 **What it does:**
-Replaces all the current content in the registered file with the new given content and returns true if it succeded.
+Updates the content of a registered file, completly replacing the current content and returns an DataError (see [Possible Errors](#possible-errors)), showing wheter and how replacing the file content failed.
 
 **How to call it:**
 - ```FileName``` is the name without extension we have given the registered file and want to rewrite the content of
@@ -169,11 +197,12 @@ Replaces all the current content in the registered file with the new given conte
 ```csharp
 string fileName = "save";
 string content = "Example";
-if (dm.UpdateFileContent(fileName, content)) {
-    Debug.Log("Updating the file to the new content: " + content + " was succesfull");
+DataManager.DataError err = dm.UpdateFileContent(fileName, content);
+if (err != DataManager.DataError.OK) {
+    Debug.Log("Updating file content failed with error id: ", err);
 }
 else {
-    Debug.Log("Updating the file to the new content: " + content + " failed");
+    Debug.Log("Updating file content succesfull to the new content: " + content);
 }
 ```
 
@@ -182,7 +211,7 @@ When you want to replace the current content of a registered file with the newly
 
 ### Append File Content method
 **What it does:**
-Appends the given content to the current content in the registered file and returns true if it succeded.
+Appends the given content to a registered file, keeping the current content and returns an DataError (see [Possible Errors](#possible-errors)), showing wheter and how appending to the file content failed.
 
 **How to call it:**
 - ```FileName``` is the name without extension we have given the registered file and want to rewrite the content of
@@ -191,11 +220,12 @@ Appends the given content to the current content in the registered file and retu
 ```csharp
 string fileName = "save";
 string content = "Example";
-if (dm.AppendFileContent(fileName, content)) {
-    Debug.Log("Appending the content: " + content + " to the file was succesfull");
+DataManager.DataError err = dm.AppendFileContent(fileName, content);
+if (err != DataManager.DataError.OK) {
+    Debug.Log("Appending file content failed with error id: ", err);
 }
 else {
-    Debug.Log("Appending the content: " + content + " to the file failed");
+    Debug.Log("Appending file content succesfull, added content being: " + content);
 }
 ```
 
@@ -204,15 +234,22 @@ WHen you want to append the given content the current content of a registered fi
 
 ### Check File Hash method
 **What it does:**
-Compares the current hash of the file with the expected hash we have saved in our environment, should be the hash for the last internal changes (write access). Returns false if hashing was not enabled for the registered file.
+Compares the current hash with the last expected hash and returns and returns an DataError (see [Possible Errors](#possible-errors)), showing wheter and how reading  the file hash failed, or if the file hash is different than expected.
 
 **How to call it:**
 - ```FileName``` is the name without extension we have given the registered file and want to check the hash now
 
 ```csharp
 string fileName = "save";
-if (!dm.CheckFileHash(fileName)) {
-    Debug.Log("Given file was changedd outside of the environment since last accesing it");
+DataManager.DataError err = dm.CheckFileHash(fileName);
+if (err ==  DataManager.DataError.OK) {
+    Debug.Log("Hash is as expected, file has not been changed outside of the environment");
+}
+if (err == DataManager.DataError.DataError.FILE_CORRUPTED) {
+    Debug.Log("Hash is different than expected, accessing might not be save anymore");
+}
+else {
+    Debug.Log("Checking file hash failed with error id: ", err);
 }
 ```
 
@@ -221,18 +258,19 @@ WHen you want to check if the file was changed outisde of the environment by for
 
 ### Delete File method
 **What it does:**
-Deletes the registered file and unregisters it from the environment.
+Deletes an registered file and unregisters it and returns an DataError (see [Possible Errors](#possible-errors)), showing wheter and how deleting the file failed.
 
 **How to call it:**
 - ```FileName``` is the name without extension we have given the registered file and want to delete now
 
 ```csharp
 string fileName = "save";
-if (dm.DeleteFile(fileName)) {
-    Debug.Log("Deleting the file " + fileName + " was succesfull");
+DataManager.DataError err = dm.DeleteFile(fileName);
+if (err != DataManager.DataError.OK) {
+    Debug.Log("Deleting file with error id: ", err);
 }
 else {
-    Debug.Log("Deleting the file " + fileName + " failed");
+    Debug.Log("Deleting file succesfull");
 }
 ```
 
