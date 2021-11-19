@@ -117,7 +117,7 @@ bool hashing = false;
 bool compression = false;
 DataManager.DataError err = dm.CreateNewFile(fileName, content, directoryPath, fileEnding, encryption, hashing, compression);
 if (err != DataManager.DataError.OK) {
-    Debug.Log("Creating file failed with error id: ", err);
+    Debug.Log("Creating file failed with error id: " + err);
 }
 else {
     Debug.Log("Creating file succesfull");
@@ -130,7 +130,7 @@ Alternatively you can call the methods with less paramters as some of them have 
 string fileName = "save";
 DataManager.DataError err = dm.CreateNewFile(fileName);
 if (err != DataManager.DataError.OK) {
-    Debug.Log("Creating file failed with error id: ", err);
+    Debug.Log("Creating file failed with error id: " + err);
 }
 else {
     Debug.Log("Creating file succesfull");
@@ -153,7 +153,7 @@ string fileName = "save";
 string content = "";
 DataManager.DataError err = dm.TryReadFromFile(fileName, content);
 if (err != DataManager.DataError.OK) {
-    Debug.Log("Reading file failed with error id: ", err);
+    Debug.Log("Reading file failed with error id: " + err);
 }
 else {
     Debug.Log("Reading file succesfull with the content being: " + content);
@@ -176,7 +176,7 @@ string fileName = "save";
 string directory = Application.persistentDataPath;
 DataManager.DataError err = dm.ChangeFilePath(fileName, directory);
 if (err != DataManager.DataError.OK) {
-    Debug.Log("Changing file path failed with error id: ", err);
+    Debug.Log("Changing file path failed with error id: " + err);
 }
 else {
     Debug.Log("Changing file path succesfull to new directory: " + directory);
@@ -199,7 +199,7 @@ string fileName = "save";
 string content = "Example";
 DataManager.DataError err = dm.UpdateFileContent(fileName, content);
 if (err != DataManager.DataError.OK) {
-    Debug.Log("Updating file content failed with error id: ", err);
+    Debug.Log("Updating file content failed with error id: " + err);
 }
 else {
     Debug.Log("Updating file content succesfull to the new content: " + content);
@@ -222,7 +222,7 @@ string fileName = "save";
 string content = "Example";
 DataManager.DataError err = dm.AppendFileContent(fileName, content);
 if (err != DataManager.DataError.OK) {
-    Debug.Log("Appending file content failed with error id: ", err);
+    Debug.Log("Appending file content failed with error id: " + err);
 }
 else {
     Debug.Log("Appending file content succesfull, added content being: " + content);
@@ -249,7 +249,7 @@ if (err == DataManager.DataError.DataError.FILE_CORRUPTED) {
     Debug.Log("Hash is different than expected, accessing might not be save anymore");
 }
 else {
-    Debug.Log("Checking file hash failed with error id: ", err);
+    Debug.Log("Checking file hash failed with error id: " + err);
 }
 ```
 
@@ -267,7 +267,7 @@ Deletes an registered file and unregisters it and returns an DataError (see [Pos
 string fileName = "save";
 DataManager.DataError err = dm.DeleteFile(fileName);
 if (err != DataManager.DataError.OK) {
-    Debug.Log("Deleting file with error id: ", err);
+    Debug.Log("Deleting file with error id: " + err);
 }
 else {
     Debug.Log("Deleting file succesfull");
