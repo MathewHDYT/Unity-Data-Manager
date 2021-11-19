@@ -58,8 +58,6 @@ To use the Data Manager to start creating/reading files outside of itself you ne
 ```csharp
 private DataManager dm;
 
-private const string saveFile = "save";
-
 private void Start() {
     dm = DataManager.instance;
     // Calling Function in DataManager
@@ -70,8 +68,6 @@ private void Start() {
 Alternatively you can directly call the methods this is not advised tough, if it is executed multiple times or you're going to need the instance multiple times in the same file.
 
 ```csharp
-private const string saveFile = "save";
-
 private void Start() {
     // Calling Function in DataManager
     DataManager.CreateNewFile(saveFile);
