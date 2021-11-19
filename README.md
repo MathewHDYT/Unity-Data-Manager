@@ -262,7 +262,7 @@ Deletes an registered file and unregisters it and returns an DataError (see [Pos
 string fileName = "save";
 DataManager.DataError err = dm.DeleteFile(fileName);
 if (err != DataManager.DataError.OK) {
-    Debug.Log("Deleting file with error id: " + err);
+    Debug.Log("Deleting file failed with error id: " + err);
 }
 else {
     Debug.Log("Deleting file succesfull");
