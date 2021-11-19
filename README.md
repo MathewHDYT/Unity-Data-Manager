@@ -240,7 +240,7 @@ DataManager.DataError err = dm.CheckFileHash(fileName);
 if (err ==  DataManager.DataError.OK) {
     Debug.Log("Hash is as expected, file has not been changed outside of the environment");
 }
-if (err == DataManager.DataError.DataError.FILE_CORRUPTED) {
+if (err == DataManager.DataError.FILE_CORRUPTED) {
     Debug.Log("Hash is different than expected, accessing might not be save anymore");
 }
 else {
