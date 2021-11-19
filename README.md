@@ -147,7 +147,7 @@ Reads the content of a registered file and returns it as plain text, as well as 
 ```csharp
 string fileName = "save";
 string content = "";
-DataManager.DataError err = dm.TryReadFromFile(fileName, content);
+DataManager.DataError err = dm.TryReadFromFile(fileName, out content);
 if (err != DataManager.DataError.OK) {
     Debug.Log("Reading file failed with error id: " + err);
 }
