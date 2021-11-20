@@ -58,8 +58,6 @@ To use the Data Manager to start creating/reading files outside of itself you ne
 ```csharp
 private DataManager dm;
 
-private const string saveFile = "save";
-
 private void Start() {
     dm = DataManager.instance;
     // Calling Function in DataManager
@@ -70,8 +68,6 @@ private void Start() {
 Alternatively you can directly call the methods this is not advised tough, if it is executed multiple times or you're going to need the instance multiple times in the same file.
 
 ```csharp
-private const string saveFile = "save";
-
 private void Start() {
     // Calling Function in DataManager
     DataManager.CreateNewFile(saveFile);
@@ -117,7 +113,7 @@ bool hashing = false;
 bool compression = false;
 DataManager.DataError err = dm.CreateNewFile(fileName, content, directoryPath, fileEnding, encryption, hashing, compression);
 if (err != DataManager.DataError.OK) {
-    Debug.Log("Creating file failed with error id: ", err);
+    Debug.Log("Creating file failed with error id: " + err);
 }
 else {
     Debug.Log("Creating file succesfull");
@@ -130,7 +126,7 @@ Alternatively you can call the methods with less paramters as some of them have 
 string fileName = "save";
 DataManager.DataError err = dm.CreateNewFile(fileName);
 if (err != DataManager.DataError.OK) {
-    Debug.Log("Creating file failed with error id: ", err);
+    Debug.Log("Creating file failed with error id: " + err);
 }
 else {
     Debug.Log("Creating file succesfull");
@@ -150,10 +146,9 @@ Reads the content of a registered file and returns it as plain text, as well as 
 
 ```csharp
 string fileName = "save";
-string content = "";
-DataManager.DataError err = dm.TryReadFromFile(fileName, content);
+DataManager.DataError err = dm.TryReadFromFile(fileName, out string content);
 if (err != DataManager.DataError.OK) {
-    Debug.Log("Reading file failed with error id: ", err);
+    Debug.Log("Reading file failed with error id: " + err);
 }
 else {
     Debug.Log("Reading file succesfull with the content being: " + content);
@@ -176,7 +171,7 @@ string fileName = "save";
 string directory = Application.persistentDataPath;
 DataManager.DataError err = dm.ChangeFilePath(fileName, directory);
 if (err != DataManager.DataError.OK) {
-    Debug.Log("Changing file path failed with error id: ", err);
+    Debug.Log("Changing file path failed with error id: " + err);
 }
 else {
     Debug.Log("Changing file path succesfull to new directory: " + directory);
@@ -199,7 +194,7 @@ string fileName = "save";
 string content = "Example";
 DataManager.DataError err = dm.UpdateFileContent(fileName, content);
 if (err != DataManager.DataError.OK) {
-    Debug.Log("Updating file content failed with error id: ", err);
+    Debug.Log("Updating file content failed with error id: " + err);
 }
 else {
     Debug.Log("Updating file content succesfull to the new content: " + content);
@@ -222,7 +217,7 @@ string fileName = "save";
 string content = "Example";
 DataManager.DataError err = dm.AppendFileContent(fileName, content);
 if (err != DataManager.DataError.OK) {
-    Debug.Log("Appending file content failed with error id: ", err);
+    Debug.Log("Appending file content failed with error id: " + err);
 }
 else {
     Debug.Log("Appending file content succesfull, added content being: " + content);
@@ -245,11 +240,11 @@ DataManager.DataError err = dm.CheckFileHash(fileName);
 if (err ==  DataManager.DataError.OK) {
     Debug.Log("Hash is as expected, file has not been changed outside of the environment");
 }
-if (err == DataManager.DataError.DataError.FILE_CORRUPTED) {
+else if (err == DataManager.DataError.FILE_CORRUPTED) {
     Debug.Log("Hash is different than expected, accessing might not be save anymore");
 }
 else {
-    Debug.Log("Checking file hash failed with error id: ", err);
+    Debug.Log("Checking file hash failed with error id: " + err);
 }
 ```
 
@@ -267,7 +262,7 @@ Deletes an registered file and unregisters it and returns an DataError (see [Pos
 string fileName = "save";
 DataManager.DataError err = dm.DeleteFile(fileName);
 if (err != DataManager.DataError.OK) {
-    Debug.Log("Deleting file with error id: ", err);
+    Debug.Log("Deleting file failed with error id: " + err);
 }
 else {
     Debug.Log("Deleting file succesfull");

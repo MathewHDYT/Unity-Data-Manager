@@ -83,7 +83,6 @@ public class DataManager : MonoBehaviour {
 
         // Check if the file should be encrypted and compressed.
         if (encryption && compression) {
-            Debug.LogWarning("File can't be both encrypted and compressed");
             return DataError.INVALID_ARGUMENT;
         }
 
@@ -102,8 +101,8 @@ public class DataManager : MonoBehaviour {
     public DataError TryReadFromFile(string fileName, out string content) {
         content = string.Empty;
 
-        ValueDataError valueDataError = GetFileData(fileName);
-        if (valueDataError.Error != DataError.OK) {
+        ValueDataError<FileData> valueDataError = GetFileData(fileName);
+        if (valueDataError.Error != (int)DataError.OK) {
             return DataError.NOT_REGISTERED;
         }
 
@@ -133,8 +132,8 @@ public class DataManager : MonoBehaviour {
     /// <param name="directory">New directory the given file should be moved too.</param>
     /// <returns>DataError, showing wheter and how changing the file path failed.</returns>
     public DataError ChangeFilePath(string fileName, string directory) {
-        ValueDataError valueDataError = GetFileData(fileName);
-        if (valueDataError.Error != DataError.OK) {
+        ValueDataError<FileData> valueDataError = GetFileData(fileName);
+        if (valueDataError.Error != (int)DataError.OK) {
             return DataError.NOT_REGISTERED;
         }
 
@@ -165,8 +164,8 @@ public class DataManager : MonoBehaviour {
     /// <param name="content">Data that should be saved into the file.</param>
     /// <returns>DataError, showing wheter and how updating the file content failed.</returns>
     public DataError UpdateFileContent(string fileName, string content) {
-        ValueDataError valueDataError = GetFileData(fileName);
-        if (valueDataError.Error != DataError.OK) {
+        ValueDataError<FileData> valueDataError = GetFileData(fileName);
+        if (valueDataError.Error != (int)DataError.OK) {
             return DataError.NOT_REGISTERED;
         }
 
@@ -181,8 +180,8 @@ public class DataManager : MonoBehaviour {
     /// <param name="content">Data that should be appended to the file.</param>
     /// <returns>DataError, showing wheter and how appending the given content to the file failed.</returns>
     public DataError AppendFileContent(string fileName, string content) {
-        ValueDataError valueDataError = GetFileData(fileName);
-        if (valueDataError.Error != DataError.OK) {
+        ValueDataError<FileData> valueDataError = GetFileData(fileName);
+        if (valueDataError.Error != (int)DataError.OK) {
             return DataError.NOT_REGISTERED;
         }
 
@@ -204,12 +203,12 @@ public class DataManager : MonoBehaviour {
     /// <returns>Wheter the file hash is still the same as expected or if it has changed.</returns>
     /// <returns>DataError, showing wheter the file hash is still the same as expected or if it has changed.</returns>
     public DataError CheckFileHash(string fileName) {
-        ValueDataError valueDataError = GetFileData(fileName);
-        if (valueDataError.Error != DataError.OK) {
+        ValueDataError<FileData> valueDataError = GetFileData(fileName);
+        if (valueDataError.Error != (int)DataError.OK) {
             return DataError.NOT_REGISTERED;
         }
-        else if (!string.IsNullOrEmpty(valueDataError.Value.FileHash)) {
-            return DataError.FILE_MISSING_DEPENDENCIES
+        else if (string.IsNullOrEmpty(valueDataError.Value.FileHash)) {
+            return DataError.FILE_MISSING_DEPENDENCIES;
         }
 
         return CompareFileHash(valueDataError.Value);
@@ -221,8 +220,8 @@ public class DataManager : MonoBehaviour {
     /// <param name="fileName">Name of the given file that should be deleted.</param>
     /// <returns>DataError, showing wheter deleting the file was succesful or not.</returns>
     public DataError DeleteFile(string fileName) {
-        ValueDataError valueDataError = GetFileData(fileName);
-        if (valueDataError.Error != DataError.OK) {
+        ValueDataError<FileData> valueDataError = GetFileData(fileName);
+        if (valueDataError.Error != (int)DataError.OK) {
             return DataError.NOT_REGISTERED;
         }
         // Check if the file exists at the given path.
@@ -245,16 +244,15 @@ public class DataManager : MonoBehaviour {
     /// ValueDataError, containing the value conisting of the data of the given file and
     /// the error, showing wheter getting the data of the given file was succesful or not.
     /// </returns>
-    private ValueDataError GetFileData(string fileName) {
-        var valueDataError = new ValueDataError(null, DataError.OK);
+    private ValueDataError<FileData> GetFileData(string fileName) {
+        var valueDataError = new ValueDataError<FileData>(null, (int)DataError.OK);
         // Get fileData from the dictionary and return null and a warning if it wasn't created yet.
-        if (fileDictionary.TryGetValue(fileName, out FileData fileData)) {
-            valueDataError.Error = DataError.NOT_REGISTERED;
+        if (!fileDictionary.TryGetValue(fileName, out FileData fileData)) {
+            valueDataError.Error = (int)DataError.NOT_REGISTERED;
             return valueDataError;
         }
 
         valueDataError.Value = fileData;
-        Debug.LogWarning("File has not been created yet with the given name: " + fileName);
         return valueDataError;
     }
 
@@ -299,13 +297,10 @@ public class DataManager : MonoBehaviour {
     /// </summary>
     /// <param name="fileName">Name of the given file that we want to get the values from.</param>
     /// <returns>DataError, showing wheter the given file already exists.</returns>
-    private DataError CheckFileNotExists(string filePath) {
+    private DataError CheckFileExists(string filePath) {
         bool exists = File.Exists(filePath);
         
         if (exists) {
-            string fileName = Path.GetFileNameWithoutExtension(filePath);
-            string directory = Path.GetDirectoryName(filePath);
-            Debug.LogWarning("There already exists a file with the name: " + fileName + " at the given folder: " + directory);
             return DataError.FILE_ALREADY_EXISTS;
         }
         
@@ -317,13 +312,10 @@ public class DataManager : MonoBehaviour {
     /// </summary>
     /// <param name="fileName">Name of the given file that we want to get the values from.</param>
     /// <returns>DataError, showing wheter the given doesn't already exist.</returns>
-    private DataError CheckFileExists(string filePath) {
+    private DataError CheckFileNotExists(string filePath) {
         bool exists = File.Exists(filePath);
         
         if (!exists) {
-            string fileName = Path.GetFileNameWithoutExtension(filePath);
-            string directory = Path.GetDirectoryName(filePath);
-            Debug.LogWarning("There doesn't exist a file with the name: " + fileName + " at the given folder: " + directory);
             return DataError.FILE_DOES_NOT_EXIST;
         }
 
@@ -480,6 +472,7 @@ public class DataManager : MonoBehaviour {
                 File.AppendAllText(filePath, content);
                 break;
             case FileMode.Create:
+                File.WriteAllText(filePath, content);
                 break;
             case FileMode.CreateNew:
                 File.Create(filePath).Close();

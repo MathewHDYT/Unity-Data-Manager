@@ -1,9 +1,9 @@
 ﻿[System.Serializable]
-public class ValueDataError {
-    public FileData Value { get; set; }
-    public DataManager.DataError Error { get; set; }
+public class ValueDataError<T> {
+    public T Value { get; set; }
+    public int Error { get; set; }
 
-    public ValueDataError(FileData value, DataManager.DataError error) {
+    public ValueDataError(T value, int error) {
         Value = value;
         Error = error;
     }
