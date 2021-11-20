@@ -3,6 +3,7 @@ using UnityEngine.UI;
 
 public class MethodCall : MonoBehaviour {
 
+    [Header("Input Fields:")]
     [SerializeField]
     private InputField fileNameInputField;
     [SerializeField]
@@ -11,14 +12,18 @@ public class MethodCall : MonoBehaviour {
     private InputField directoryPathInputField;
     [SerializeField]
     private InputField fileEndingInputField;
-    [SerializeField]
-    private Text outputText;
+    
+    [Header("Input Toggles:")]
     [SerializeField]
     private Toggle encryptionToggle;
     [SerializeField]
     private Toggle hashingToggle;
     [SerializeField]
     private Toggle compressionToggle;
+    
+    [Header("Output:")]
+    [SerializeField]
+    private Text outputText;
 
     private DataManager dm;
 
